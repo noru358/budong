@@ -557,77 +557,102 @@ flowchart TD
 
 현재 상태(2026-09-28):
 
-- **GATE 0 완료** — `V1_PROTOTYPE_CONTRACT.md`를 확정함.
-- 정본 원칙 유지:
-  - 공식 사업단계·법적/권리 용어가 canonical
-  - 쉬운 설명은 보조 레이어
-  - 사업단계와 권리·규제 Event 분리
-  - unknown은 0/PASS가 아니라 `NEEDS_REVIEW`
-- Legal/Ontology, Data, Finance, Search, UX 5개 워크스트림 1차 착수 완료.
-- `src/prototype.mjs`
-  - 서울형 synthetic project fixture 10개
-  - investment case fixture 20개
-  - exact / alias exact / prefix / substring / trigram fuzzy 검색
-  - 초기 자기자금 / 향후 추가자금 / 최대 누적 자기자금 / 총 경제적 비용 / 세전손익 / MOIC / XIRR / 손익분기 매도가 계산
-  - 기납부 분담금 중복산입 방지
-  - 보증금·대출과 경제적 비용 분리
-  - 핵심 unknown fail-closed
-- `db/schema.sql`
-  - PostgreSQL `pg_trgm`
-  - project / alias / stage event / rights-regulation event / boundary version
-  - source / source_license / fact_assertion / source_lineage
-  - investment_case
-- `data/source_registry.json`
-  - 국가법령정보센터: YELLOW
-  - 서울 정비사업 정보몽땅: YELLOW
-  - 국토부 연립다세대 매매 실거래가: GREEN
-  - 국토부 Building HUB 건축물대장: GREEN
-  - 서울시·자치구 고시/공고: WHITE
-- `web/index.html`
-  - 홈 / 지도 / 검색 / 구역 상세 / 물건 분석·비교 5화면 fixture prototype
-  - 지도는 공식 경계가 아닌 fixture 좌표도임을 명시
-  - 권리/규제는 원문 확인 전 `NEEDS_REVIEW`
-- `.github/workflows/test.yml`로 main push마다 `npm test`를 검증.
+## 완료
 
-아직 완료되지 않은 것:
-- 실제 공공데이터 서비스키/API 연결
-- 서울 30~50개 실제 구역 seed
-- 5~10개 실제 구역 deep validation
-- 공식 경계 adapter
-- 고시/공고 원문 assertion/lineage
-- 실제 매물 dogfood
-- 소수 지인 사용성 테스트
+- **GATE 0 완료** — `V1_PROTOTYPE_CONTRACT.md` LOCK.
+- **GATE 1 완료** — fixture 기준 5화면 end-to-end + Search + Finance + QA.
+- 사용자가 공공데이터포털 개발계정 활용신청 완료 확인:
+  - 연립다세대 매매
+  - 단독/다가구 매매
+  - 아파트 전월세
+  - 아파트 매매 상세
+  - 아파트 분양권전매
+  - 아파트 매매
+  - Building HUB 건축물대장정보
+- **GATE 2 실제 데이터 통합 진행 중.**
+  - `data/seoul_seed_v1.json`: 서울 실제 정비사업 44개 shallow seed
+  - `data/deep_validation_v1.json`: 10개 deep target
+  - `docs/REAL_DATA_PLAN_V1.md`: real-data source hierarchy / adapter / Gate2 exit
+  - `src/adapters/contracts.mjs`: provenance / license / secret fail-closed 계약
+  - `src/adapters/data_go_kr.mjs`: RTMS + Building HUB request/normalize adapter
+  - `.env.example` + `.gitignore`: API key 비커밋 구조
+- Deep validation에서 실제 데이터 모델을 보정함:
+  - 정보몽땅 `현재단계 표시`는 법적 event가 아니라 source snapshot
+  - 법정 단계는 공식 고시·공고 기반 `PROJECT_STAGE_EVENT`
+  - 신탁/사업시행자 등은 `PROJECT_GOVERNANCE_EVENT`
+  - 고시 정정은 새 단계가 아니라 correction event
+- 1차 공식 근거 연결:
+  - 상도15: 정비구역 지정 고시 제2025-178호 / 2025-04-03
+  - 한남5: 사업시행인가 용산구 고시 제2026-55호 / 2026-04-30
+  - 잠실5: 사업시행계획인가 송파구 고시 제2026-90호 / 2026-07-09
+  - 잠실5 정정: 송파구 고시 제2026-99호 / 2026-08-20
+  - 목동10: 정비구역 지정 서울시 고시 제2025-420호 / 2025-07-31
+  - 독바위역세권: 정비구역 지정 제2019-237호 원문 연결, 사업시행인가 제2026-37호는 공식 서울시 인덱스까지 확인(직접 원문/고시일 추가 확인 필요)
+  - 불광제5: 정보몽땅 stage history에서 사업시행인가 2021-09-23 / 관리처분인가 2024-11-28 확인, 원 구청 고시 연결 전 SOURCE_CONFIRMED 유지
+- `web/index.html`:
+  - 홈/검색/구역 상세은 실제 44개 seed 사용
+  - deep target에는 공식 고시 evidence 표시
+  - 지도는 공식 경계 전 FAIL-CLOSED
+  - 물건 분석만 아직 fixture
+
+## 아직 완료되지 않음
+
+- 실제 API key를 이용한 live RTMS / Building HUB call
+- deep target 최소 5개에 실거래 + 건축물대장까지 실제 연결
+- 청파2 / 공덕6 / 흑석9 / 망원 등 남은 원문 deep validation
+- 공식 정비구역 polygon source 확정
+- 실제 매물 입력 / dogfood
+- 지인 usability test
 
 ---
 
 # 15. NEXT
 
-## A. 사용자만 할 수 있는 외부 액션
+## A. 사용자만 해야 하는 외부 액션 — 현재 1개
 
-1. 공공데이터포털에서 실제 호출용 서비스키 준비
-   - 국토교통부 연립다세대 매매 실거래가
-   - 국토교통부 Building HUB 건축물대장정보
-2. 서울 정비사업 정보몽땅의 대량수집/API/상업적 재사용 조건을 약관 또는 담당부서 기준으로 확인
-3. 공식 경계 데이터를 어떤 외부 원천(VWorld/서울 GIS/공식 고시 첨부 등)으로 받을지 결정 후, 필요한 경우 해당 API 키 신청
+발급된 공공데이터포털 키를 **채팅에 보내지 말고**, 아래 둘 중 하나로 주입한다.
 
-비밀키는 저장소에 커밋하지 않는다. 향후 환경변수/Secret으로 주입한다.
+### 권장: GitHub Actions Repository Secret
 
-## B. 다음 구현 순서
+`noru358/budong → Settings → Secrets and variables → Actions → New repository secret`
 
-외부 키를 기다리지 않고 할 수 있는 범위는 계속 fixture/manual seed로 진행한다.
+- Name: `DATA_GO_KR_SERVICE_KEY`
+- Secret: 공공데이터포털에서 발급된 서비스키
 
-1. Source Adapter 인터페이스 고정
-2. 실제 서울 구역 30~50개 seed 목록 작성
-3. 그중 5~10개 deep validation 대상 선정
-4. 고시/공고 → FACT_ASSERTION → PROJECT_STAGE_EVENT / RIGHTS_REGULATION_EVENT 연결
-5. 실거래 / 건축물대장 adapter 연결
-6. 공식 경계 adapter 연결
-7. fixture prototype을 실제 데이터로 치환
-8. GATE 2 정합성 QA
-9. 실제 매물 dogfood → GATE 3
+키를 README, issue, commit, source code에 넣지 않는다.
+
+### 로컬 개발만 할 경우
+
+저장소 루트에서 `.env.example`을 `.env`로 복사하고:
+
+```text
+DATA_GO_KR_SERVICE_KEY=발급된키
+```
+
+로컬 `.env`는 `.gitignore` 처리되어 있다.
+
+**둘 중 하나면 충분하다.**
+
+VWorld 등 추가 키는 아직 신청하지 않는다. 공식 경계 source 비교가 끝난 뒤 필요할 때만 요청한다.
+
+## B. 다음 구현
+
+키 주입 전에도:
+1. 나머지 deep target 공식 고시/공고 원문 확정
+2. boundary 후보의 정확도/라이선스 비교
+3. 실데이터 UI와 provenance 강화
+
+키 주입 후 즉시:
+4. RTMS live smoke
+5. Building HUB live smoke
+6. 5개 deep target에 거래/건축물 실제 연결
+7. source lineage + QA
+8. 공식 boundary adapter
+9. GATE 2 종료판정
+10. 실제 매물 dogfood → GATE 3
 
 ---
 
 # 16. 다음 세션 첫 지시문
 
-> `README.md`, `REDEVELOPMENT_HANDOFF_v0.2_20260928.md`, `V1_PROTOTYPE_CONTRACT.md`를 정본으로 읽어. GATE 0은 이미 확정됐고 5개 워크스트림의 fixture 구현도 시작되어 있으므로 계약을 다시 설계하지 마. `src/prototype.mjs`, `tests/prototype.test.mjs`, `db/schema.sql`, `data/source_registry.json`, `docs/WORKSTREAMS_V1.md`, `web/index.html`을 실제로 읽고 CURRENT/NEXT에서 이어가. 공식 사업단계·법적/권리 용어는 그대로 유지하고 쉬운 표현은 보조 레이어에만 둔다. 실제 API 키가 없어도 manual seed로 진행하되, 실제 사실로 표시하는 값에는 source assertion과 provenance가 반드시 있어야 한다.
+> `README.md`, `REDEVELOPMENT_HANDOFF_v0.2_20260928.md`, `V1_PROTOTYPE_CONTRACT.md`를 정본으로 읽어. GATE 0과 GATE 1은 완료했고 GATE 2 실제 데이터 통합 중이다. `data/seoul_seed_v1.json`, `data/deep_validation_v1.json`, `src/adapters/contracts.mjs`, `src/adapters/data_go_kr.mjs`, `db/schema.sql`, `web/index.html`을 실제로 읽고 이어가. 포털 current-stage snapshot과 법적 stage event를 혼동하지 말고, 신탁/사업시행자 governance event도 별도 축으로 유지한다. 원문이 없는 날짜·권리사실을 추정하지 않는다. 사용자가 DATA_GO_KR_SERVICE_KEY를 Secret/로컬 env로 주입했다면 live adapter smoke부터 진행한다.
