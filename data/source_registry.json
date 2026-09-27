@@ -1,0 +1,46 @@
+{
+  "reviewed_at": "2026-09-28",
+  "rule": "commercial_readiness inherits the most restrictive upstream source",
+  "sources": [
+    {
+      "source_id": "LAW_DOSIJONGBI",
+      "name": "국가법령정보센터 도시 및 주거환경정비법",
+      "institution": "법제처",
+      "purpose": "법정 사업단계·법적 용어 기준",
+      "readiness": "YELLOW",
+      "license_note": "법령 내용은 공식 기준으로 사용. 재배포·표시 방식은 상용화 전에 별도 재확인."
+    },
+    {
+      "source_id": "SEOUL_CLEANUP",
+      "name": "서울시 정비사업 정보몽땅",
+      "institution": "서울특별시",
+      "purpose": "서울 정비사업 유형·진행상태·구역 탐색",
+      "readiness": "YELLOW",
+      "license_note": "공식 조회 출처. 대량수집/API/상업 재사용 조건은 Gate 2 전에 확인."
+    },
+    {
+      "source_id": "MOLIT_RTMS_MULTIFAMILY_SALE",
+      "name": "국토교통부 연립다세대 매매 실거래가 공개자료",
+      "institution": "국토교통부",
+      "purpose": "실거래",
+      "readiness": "GREEN",
+      "license_note": "공공데이터포털 카탈로그에서 이용허락범위 제한 없음 확인. 실제 호출은 서비스키 필요."
+    },
+    {
+      "source_id": "MOLIT_BUILDING_HUB",
+      "name": "국토교통부 Building HUB 건축물대장정보 서비스",
+      "institution": "국토교통부",
+      "purpose": "건축물대장",
+      "readiness": "GREEN",
+      "license_note": "공공데이터포털 카탈로그에서 이용허락범위 제한 없음 확인. 실제 호출은 서비스키 필요."
+    },
+    {
+      "source_id": "SEOUL_OFFICIAL_NOTICE",
+      "name": "서울시·자치구 고시/공고 원문",
+      "institution": "서울특별시·자치구",
+      "purpose": "단계·경계·권리/규제 사실의 1차 원문",
+      "readiness": "WHITE",
+      "license_note": "문서별 원문 위치와 재사용 조건을 adapter 연결 시 기록."
+    }
+  ]
+}
