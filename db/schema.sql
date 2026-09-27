@@ -38,6 +38,11 @@ CREATE TABLE project (
   current_stage_code text,
   current_stage_name_official text,
   current_stage_effective_date date,
+  current_stage_display_raw text,
+  current_stage_display_source_id text,
+  current_stage_display_observed_at timestamptz,
+  implementation_method_raw text,
+  implementation_method_status certainty_status NOT NULL DEFAULT 'NEEDS_REVIEW',
   verified_at timestamptz,
   source_assertion_id text
 );
@@ -58,6 +63,19 @@ CREATE TABLE project_stage_event (
   legal_framework text,
   event_date date,
   certainty certainty_status NOT NULL,
+  source_assertion_id text
+);
+
+CREATE TABLE project_governance_event (
+  id bigserial PRIMARY KEY,
+  project_id text NOT NULL REFERENCES project(id),
+  event_type_code text NOT NULL,
+  event_name_official text NOT NULL,
+  event_date date,
+  observed_at timestamptz,
+  actor_name text,
+  certainty certainty_status NOT NULL,
+  legal_effect_status certainty_status NOT NULL DEFAULT 'NEEDS_REVIEW',
   source_assertion_id text
 );
 
@@ -112,5 +130,9 @@ CREATE TABLE investment_case (
 CREATE INDEX project_name_trgm ON project USING gin (normalized_name gin_trgm_ops);
 CREATE INDEX project_alias_trgm ON project_alias USING gin (normalized_alias gin_trgm_ops);
 
+-- IMPORTANT: a portal's current-stage display is an observation, not automatically
+-- the legal event/effective date. Trust/project-implementer governance events are
+-- modeled separately from association/stage events.
+--
 -- Search baseline: exact > alias exact > prefix > substring > trigram fuzzy.
 -- Result projection must always include official project type and official current stage.
