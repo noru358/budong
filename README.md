@@ -53,12 +53,14 @@
 
 공공데이터포털 활용신청은 사용자 확인 기준 완료됐다. 실제 RTMS / Building HUB 호출을 위해서는 발급된 키를 로컬 `.env` 또는 GitHub Actions Repository Secret의 **`DATA_GO_KR_SERVICE_KEY`** 로만 주입해야 한다.
 
+GitHub 방식에서는 공공데이터포털의 **Decoding 인증키**를 `DATA_GO_KR_SERVICE_KEY`로 저장한 뒤, `Actions → Live Data Smoke → Run workflow`를 실행한다. 이 수동 smoke workflow는 실거래가 + Building HUB를 실제 호출하며 키를 출력하거나 artifact에 저장하지 않는다.
+
 키를 채팅이나 저장소 파일에 붙이지 않는다.
 
 ## 다음
 
-1. 사용자가 `DATA_GO_KR_SERVICE_KEY`를 안전하게 주입
-2. RTMS / Building HUB live smoke + 5개 deep target 실제 데이터 연결
+1. 사용자가 `DATA_GO_KR_SERVICE_KEY`를 안전하게 주입하고 `Live Data Smoke` workflow 1회 실행
+2. 성공 run을 확인한 뒤 RTMS / Building HUB를 5개 deep target 실제 데이터에 연결
 3. 나머지 deep target 공식 고시 원문 확정
 4. 서울플랜+ SHP 수집·boundary adapter → 개인 V1 지도 연결
 5. 상용판용 경계 source는 별도 GREEN/YELLOW 원천으로 교체
