@@ -3,55 +3,121 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>budong V1 Fixture Prototype</title>
+<title>budong V1 — Gate 2</title>
 <style>
-:root{font-family:Inter,Pretendard,system-ui,sans-serif;color:#111;background:#f6f6f3}*{box-sizing:border-box}body{margin:0}.top{padding:10px 20px;background:#201f1c;color:#fff;font-size:13px}.shell{max-width:1120px;margin:auto;padding:20px}.nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 24px}.nav button,.btn{border:1px solid #c9c7c0;background:white;border-radius:10px;padding:10px 14px;cursor:pointer}.nav .active,.btn{background:#111;color:white}.search{display:flex;gap:8px}.search input{flex:1;padding:14px;border:1px solid #c9c7c0;border-radius:12px;font-size:16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.card{background:white;border:1px solid #dedbd2;border-radius:14px;padding:16px;margin:10px 0}.meta{color:#6b6962;font-size:13px}.stage{font-weight:800;margin-top:8px}.official{font-size:26px;font-weight:900}.plain{background:#eeece6;border-radius:12px;padding:14px;margin:16px 0}.badge{display:inline-block;border:1px solid #c8c5bb;border-radius:999px;padding:4px 8px;font-size:12px}.warn{border-color:#d7b76b;background:#fffaf0}.map{height:520px;position:relative;background:linear-gradient(#f1f1ee 1px,transparent 1px),linear-gradient(90deg,#f1f1ee 1px,transparent 1px);background-size:32px 32px;border:1px solid #d8d5cc;border-radius:16px;overflow:hidden}.pin{position:absolute;transform:translate(-50%,-50%);border:0;border-radius:999px;width:28px;height:28px;background:#111;color:#fff;cursor:pointer}.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}.kpi{background:white;border:1px solid #dedbd2;border-radius:12px;padding:14px}.kpi strong{font-size:22px;display:block;margin-top:6px}table{width:100%;border-collapse:collapse;background:white}th,td{padding:10px;border-bottom:1px solid #eee;text-align:left}h1{font-size:28px}h2{margin-top:28px}@media(max-width:640px){.shell{padding:14px}.map{height:420px}.search{flex-direction:column}}
+:root{font-family:Inter,Pretendard,system-ui,sans-serif;color:#111;background:#f6f6f3}*{box-sizing:border-box}body{margin:0}.top{padding:10px 20px;background:#201f1c;color:#fff;font-size:13px}.shell{max-width:1120px;margin:auto;padding:20px}.nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 24px}.nav button,.btn{border:1px solid #c9c7c0;background:white;border-radius:10px;padding:10px 14px;cursor:pointer}.nav .active,.btn{background:#111;color:white}.search{display:flex;gap:8px}.search input{flex:1;padding:14px;border:1px solid #c9c7c0;border-radius:12px;font-size:16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.card{background:white;border:1px solid #dedbd2;border-radius:14px;padding:16px;margin:10px 0}.card.click{cursor:pointer}.meta{color:#6b6962;font-size:13px}.stage{font-weight:800;margin-top:8px}.official{font-size:26px;font-weight:900}.plain{background:#eeece6;border-radius:12px;padding:14px;margin:16px 0}.badge{display:inline-block;border:1px solid #c8c5bb;border-radius:999px;padding:4px 8px;font-size:12px;margin:2px}.warn{border-color:#d7b76b;background:#fffaf0}.ok{border-color:#8fb79b;background:#f4fbf5}.pending{border:1px dashed #aaa69b;border-radius:16px;padding:36px;text-align:center;background:#fff}.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}.kpi{background:white;border:1px solid #dedbd2;border-radius:12px;padding:14px}.kpi strong{font-size:22px;display:block;margin-top:6px}table{width:100%;border-collapse:collapse;background:white}th,td{padding:10px;border-bottom:1px solid #eee;text-align:left}h1{font-size:28px}h2{margin-top:28px}.small{font-size:12px}.count{font-size:42px;font-weight:900}.borough{padding:12px 0;border-bottom:1px solid #e5e2d9}@media(max-width:640px){.shell{padding:14px}.search{flex-direction:column}}
 </style>
 </head>
 <body>
-<div class="top">FIXTURE ONLY · 실제 투자판단 금지 · 공식 법적/권리 사실은 원문 확인 전 NEEDS_REVIEW</div>
+<div class="top">GATE 2 · 실제 서울 사업장 seed + 공식 원문 검증 진행 중 · 물건 투자계산은 아직 fixture</div>
 <div class="shell">
 <nav class="nav" id="nav">
 <button data-v="home" class="active">홈</button><button data-v="map">지도</button><button data-v="search">검색</button><button data-v="detail">구역 상세</button><button data-v="analysis">물건 분석·비교</button>
 </nav>
-<main id="app"></main>
+<main id="app"><div class="card">실데이터를 불러오는 중입니다.</div></main>
 </div>
 <script type="module">
-import {PROJECTS,INVESTMENT_CASES,searchProjects,computeInvestmentCase} from "../src/prototype.mjs";
-const app=document.querySelector("#app"), nav=document.querySelector("#nav");
-let view="home", current=PROJECTS[0].id;
-const won=(v)=>v==null?"확인 필요":(v/100000000).toFixed(2)+"억";
-const pct=(v)=>v==null?"확인 필요":(v*100).toFixed(1)+"%";
-const pby=(id)=>PROJECTS.find(p=>p.id===id);
-const cases=(id)=>INVESTMENT_CASES.filter(c=>c.project_id===id);
-function card(p){return '<div class="card" data-p="'+p.id+'"><b>'+p.canonical_name+'</b><div class="meta">'+p.project_type_name_official+' · '+p.jurisdiction+'</div><div class="stage">'+p.current_stage_name_official+'</div></div>'}
-function bind(){document.querySelectorAll("[data-p]").forEach(x=>x.onclick=()=>{current=x.dataset.p;set("detail")})}
+import {INVESTMENT_CASES,PROJECTS as FIXTURE_PROJECTS,searchProjects,computeInvestmentCase} from "../src/prototype.mjs";
+
+const [seed,deep]=await Promise.all([
+  fetch("../data/seoul_seed_v1.json").then(r=>{if(!r.ok)throw new Error("seed load failed");return r.json()}),
+  fetch("../data/deep_validation_v1.json").then(r=>{if(!r.ok)throw new Error("deep load failed");return r.json()})
+]);
+
+const REAL_PROJECTS=seed.projects.map(p=>({
+  id:p.id,
+  real:true,
+  canonical_name:p.canonical_name,
+  aliases:[],
+  project_type_name_official:p.project_type_official_raw,
+  jurisdiction:p.jurisdiction,
+  current_stage_name_official:p.current_stage_official_raw,
+  address_tokens:[p.representative_lot,p.jurisdiction],
+  station_tokens:[],
+  representative_lot:p.representative_lot,
+  stage_snapshot_at:p.stage_snapshot_at,
+  certainty:p.certainty,
+  boundary_status:p.boundary_status,
+  deep_validation_target:p.deep_validation_target
+}));
+const DEEP=new Map(deep.targets.map(x=>[x.project_id,x]));
+const app=document.querySelector("#app"),nav=document.querySelector("#nav");
+let view="home",current=REAL_PROJECTS.find(x=>x.deep_validation_target)?.id||REAL_PROJECTS[0].id;
+
+const won=v=>v==null?"확인 필요":(v/100000000).toFixed(2)+"억";
+const pct=v=>v==null?"확인 필요":(v*100).toFixed(1)+"%";
+const realBy=id=>REAL_PROJECTS.find(p=>p.id===id);
+const fixtureBy=id=>FIXTURE_PROJECTS.find(p=>p.id===id);
+
+function esc(s=""){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function realCard(p){
+  return '<div class="card click" data-p="'+esc(p.id)+'"><b>'+esc(p.canonical_name)+'</b><div class="meta">'+esc(p.project_type_name_official)+' · '+esc(p.jurisdiction)+' · '+esc(p.representative_lot)+'</div><div class="stage">'+esc(p.current_stage_name_official)+'</div><div class="meta">현재단계 표시 snapshot · '+esc(p.stage_snapshot_at)+(p.deep_validation_target?' · <span class="badge">DEEP 검증대상</span>':'')+'</div></div>';
+}
+function bindProjects(){document.querySelectorAll("[data-p]").forEach(x=>x.onclick=()=>{current=x.dataset.p;set("detail")})}
 function set(v){view=v;nav.querySelectorAll("button").forEach(b=>b.classList.toggle("active",b.dataset.v===v));render()}
 nav.onclick=e=>{const b=e.target.closest("[data-v]");if(b)set(b.dataset.v)};
+
 function home(){
- app.innerHTML='<h1>서울 재개발·재건축을 찾고, 물건의 돈 흐름까지 본다</h1><div class="search"><input id="hq" placeholder="구역·단지·주소·역 검색"><button class="btn" id="hgo">검색</button></div><h2>최근 본 곳</h2><div class="grid">'+PROJECTS.slice(0,3).map(card).join("")+'</div><h2>분석 중 물건</h2>'+cases(PROJECTS[0].id).map(c=>{const m=computeInvestmentCase(c).metrics;return '<div class="card"><b>'+PROJECTS[0].canonical_name+' · '+c.label+'</b><div class="meta">처음 '+won(m.initial_equity_required)+' · 최대 '+won(m.peak_cumulative_equity)+'</div></div>'}).join("");
- document.querySelector("#hgo").onclick=()=>{sessionStorage.q=document.querySelector("#hq").value;set("search")};bind();
+  const deepCount=REAL_PROJECTS.filter(x=>x.deep_validation_target).length;
+  app.innerHTML='<h1>서울 재개발·재건축을 찾고, 법적 근거와 돈의 흐름까지 본다</h1>'+
+  '<div class="search"><input id="hq" placeholder="구역·단지·대표지번 검색"><button class="btn" id="hgo">검색</button></div>'+
+  '<div class="grid" style="margin-top:20px"><div class="card"><div class="meta">실제 서울 seed</div><div class="count">'+REAL_PROJECTS.length+'</div><b>사업장</b></div><div class="card"><div class="meta">Deep validation</div><div class="count">'+deepCount+'</div><b>대상</b></div><div class="card"><div class="meta">공식 경계</div><div class="count">0</div><b>연결 전 — 추정경계 표시 금지</b></div></div>'+
+  '<h2>Deep validation 대상</h2><div class="grid">'+REAL_PROJECTS.filter(x=>x.deep_validation_target).slice(0,6).map(realCard).join("")+'</div>'+
+  '<h2>투자계산</h2><div class="card warn"><b>아직 fixture 단계</b><div class="meta">실제 구역·법적 데이터는 연결 중이지만, 개별 매물 입력과 실거래/건축물대장 adapter가 연결되기 전까지 투자계산 사례는 synthetic fixture를 사용합니다.</div><button class="btn" id="demo" style="margin-top:12px">계산 데모 보기</button></div>';
+  document.querySelector("#hgo").onclick=()=>{sessionStorage.q=document.querySelector("#hq").value;set("search")};
+  document.querySelector("#demo").onclick=()=>set("analysis");
+  bindProjects();
 }
+
 function search(){
- const q=sessionStorage.q||"";const rows=q?searchProjects(PROJECTS,q):[];
- app.innerHTML='<h1>검색</h1><div class="search"><input id="q" value="'+q+'" placeholder="구역·단지·주소·역 검색"><button class="btn" id="go">검색</button></div><div id="res">'+(rows.length?rows.map(r=>card(r.project)).join(""):'<div class="card meta">검색어를 입력하세요.</div>')+'</div>';
- document.querySelector("#go").onclick=()=>{sessionStorage.q=document.querySelector("#q").value;search()};bind();
+  const q=sessionStorage.q||"";
+  const rows=q?searchProjects(REAL_PROJECTS,q,50):[];
+  app.innerHTML='<h1>실제 서울 사업장 검색</h1><div class="search"><input id="q" value="'+esc(q)+'" placeholder="예: 상도15, 잠실5, 청파, 신정동 311"><button class="btn" id="go">검색</button></div>'+
+  '<div class="meta" style="margin-top:10px">검색결과의 단계는 서울 정비사업 정보몽땅의 2026-09-28 snapshot이며, 법적 효력일은 원문 검증 결과를 상세에서 별도로 표시합니다.</div>'+
+  '<div id="res">'+(rows.length?rows.map(r=>realCard(r.project)).join(""):'<div class="card meta">'+(q?'검색 결과가 없습니다.':'검색어를 입력하세요.')+'</div>')+'</div>';
+  document.querySelector("#go").onclick=()=>{sessionStorage.q=document.querySelector("#q").value;search()};
+  bindProjects();
 }
+
 function map(){
- const xs=PROJECTS.map(p=>p.centroid.lng),ys=PROJECTS.map(p=>p.centroid.lat),xmin=Math.min(...xs)-.01,xmax=Math.max(...xs)+.01,ymin=Math.min(...ys)-.01,ymax=Math.max(...ys)+.01;
- app.innerHTML='<h1>지도</h1><p class="meta">Fixture 위치도 · 실제 공식 경계/배경지도는 Gate 2에서 source adapter 연결 후 표시합니다.</p><div class="map">'+PROJECTS.map((p,i)=>{const x=(p.centroid.lng-xmin)/(xmax-xmin)*92+4,y=(ymax-p.centroid.lat)/(ymax-ymin)*90+5;return '<button class="pin" data-p="'+p.id+'" style="left:'+x+'%;top:'+y+'%" title="'+p.canonical_name+' · '+p.current_stage_name_official+'">'+(i+1)+'</button>'}).join("")+'</div>';bind();
+  const by={};
+  for(const p of REAL_PROJECTS)(by[p.jurisdiction]??=[]).push(p);
+  app.innerHTML='<h1>지도</h1><div class="pending"><div class="count">FAIL-CLOSED</div><h2>공식 경계 adapter 연결 전</h2><p>대표지번만으로 임의 polygon이나 점을 “공식 구역”처럼 그리지 않습니다.<br>공식 경계 source가 검증되면 이 화면에 실제 지도와 경계를 연결합니다.</p></div>'+
+  '<h2>현재 확보한 사업장</h2>'+Object.entries(by).map(([k,v])=>'<div class="borough"><b>'+esc(k)+'</b> · '+v.length+'개</div>').join("");
+}
+
+function eventCard(e){
+  const cls=e.certainty==="OFFICIAL_CONFIRMED"?"ok":"warn";
+  return '<div class="card '+cls+'"><b>'+esc(e.event_name_official)+'</b><div class="meta">'+esc(e.event_type_code)+' · '+esc(e.certainty)+'</div>'+
+    '<div style="margin-top:8px">'+esc(e.event_date||"날짜 원문 확인 필요")+'</div>'+
+    (e.notice_number?'<div class="meta">'+esc(e.notice_number)+'</div>':'')+'</div>';
 }
 function detail(){
- const p=pby(current);
- app.innerHTML='<div class="meta">'+p.project_type_name_official+' · '+p.jurisdiction+'</div><h1>'+p.canonical_name+'</h1><div class="official">'+p.current_stage_name_official+'</div><div class="meta">효력/기준일 '+p.current_stage_effective_date+' · 최근 확인 '+p.verified_at+'</div><p><span class="badge">'+p.boundary_kind+'</span> <span class="badge">'+p.certainty+'</span></p><div class="plain"><b>쉽게 보기</b><br>'+p.current_stage_plain_explanation+'</div><h2>권리·규제</h2>'+p.rights_events.map(e=>'<div class="card warn"><b>'+e.event_name_official+'</b><div class="meta">'+e.status+' · '+e.note+'</div></div>').join("")+'<h2>Fixture 물건</h2><div class="grid">'+cases(p.id).map(c=>'<div class="card"><b>'+c.label+'</b><br><button class="btn" data-c="'+c.id+'" style="margin-top:10px">분석</button></div>').join("")+'</div>';
- document.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{sessionStorage.case=b.dataset.c;set("analysis")});
+  const p=realBy(current)||REAL_PROJECTS[0],d=DEEP.get(p.id);
+  const events=d?.legal_events||[];
+  const gov=d?.governance_events||[];
+  app.innerHTML='<div class="meta">'+esc(p.project_type_name_official)+' · '+esc(p.jurisdiction)+' · '+esc(p.representative_lot)+'</div>'+
+  '<h1>'+esc(p.canonical_name)+'</h1>'+
+  '<div class="official">'+esc(p.current_stage_name_official)+'</div>'+
+  '<div class="meta">서울 정비사업 정보몽땅 현재단계 표시 · 관찰일 '+esc(p.stage_snapshot_at)+' · '+esc(p.certainty)+'</div>'+
+  '<div class="card warn"><b>현재단계 표시 ≠ 자동으로 법적 효력일</b><div class="meta">아래 공식 고시 event가 연결된 경우에만 고시번호·날짜를 법적 이력으로 별도 확정합니다.</div></div>'+
+  '<h2>법정 단계·고시 이력</h2>'+(events.length?events.map(eventCard).join(""):'<div class="card warn">아직 원문 deep validation 전입니다. 날짜를 추정하지 않습니다.</div>')+
+  (gov.length?'<h2>사업시행 방식 / governance</h2>'+gov.map(g=>'<div class="card warn"><b>'+esc(g.event_name_official)+'</b><div>'+esc(g.actor_name||"")+'</div><div class="meta">'+esc(g.certainty)+' · 법적 효력 '+esc(g.legal_effect_status)+'</div></div>').join(""):'')+
+  (d?.policy_events?.length?'<h2>정책·행정 절차</h2>'+d.policy_events.map(eventCard).join(""):'')+
+  '<h2>경계</h2><div class="card warn"><b>'+esc(p.boundary_status)+'</b><div class="meta">공식 polygon source 연결 전에는 지도 경계로 승격하지 않습니다.</div></div>'+
+  '<h2>개별 물건 분석</h2><div class="card"><div class="meta">실거래/건축물대장 adapter 연결 후 이 실제 구역에 물건을 붙입니다. 현재 계산 엔진 자체는 fixture로 검증되어 있습니다.</div><button class="btn" id="demo" style="margin-top:12px">계산 엔진 데모</button></div>';
+  document.querySelector("#demo").onclick=()=>set("analysis");
 }
+
 function analysis(){
- const a=INVESTMENT_CASES.find(c=>c.id===(sessionStorage.case||INVESTMENT_CASES[0].id))||INVESTMENT_CASES[0];
- const b=INVESTMENT_CASES.find(c=>c.project_id===a.project_id&&c.id!==a.id)||INVESTMENT_CASES[1];
- const ma=computeInvestmentCase(a).metrics,mb=computeInvestmentCase(b).metrics;
- const row=(n,x,y,f=won)=>'<tr><th>'+n+'</th><td>'+f(x)+'</td><td>'+f(y)+'</td></tr>';
- app.innerHTML='<h1>물건 분석·비교</h1><h2>'+pby(a.project_id).canonical_name+' · '+a.label+'</h2><div class="kpis"><div class="kpi">지금 필요한 내 돈<strong>'+won(ma.initial_equity_required)+'</strong></div><div class="kpi">앞으로 추가 내 돈<strong>'+won(ma.future_additional_equity)+'</strong></div><div class="kpi">최대 누적 자기자금<strong>'+won(ma.peak_cumulative_equity)+'</strong></div><div class="kpi">전체 경제적 비용<strong>'+won(ma.total_economic_cost)+'</strong></div><div class="kpi">기준 세전손익<strong>'+won(ma.pretax_profit)+'</strong></div><div class="kpi warn">가장 중요한 미확인사항<strong style="font-size:14px">'+a.unresolved_items[0]+'</strong></div></div><h2>상세 비교</h2><table><thead><tr><th>지표</th><th>'+a.label+'</th><th>'+b.label+'</th></tr></thead><tbody>'+row("초기 자기자금",ma.initial_equity_required,mb.initial_equity_required)+row("최대 누적 자기자금",ma.peak_cumulative_equity,mb.peak_cumulative_equity)+row("총 경제적 비용",ma.total_economic_cost,mb.total_economic_cost)+row("세전손익",ma.pretax_profit,mb.pretax_profit)+row("MOIC",ma.moic,mb.moic,x=>x.toFixed(2)+"x")+row("XIRR",ma.xirr,mb.xirr,pct)+row("손익분기 매도가",ma.break_even_exit_price,mb.break_even_exit_price)+'</tbody></table><div class="card warn"><b>법적/권리 사실</b><div class="meta">이 화면은 투자추천이 아닙니다. fixture의 권리산정기준일·조합원 지위·분양자격은 실제 원문 확인 전 모두 NEEDS_REVIEW입니다.</div></div>';
+  const a=INVESTMENT_CASES.find(c=>c.id===(sessionStorage.case||INVESTMENT_CASES[0].id))||INVESTMENT_CASES[0];
+  const b=INVESTMENT_CASES.find(c=>c.project_id===a.project_id&&c.id!==a.id)||INVESTMENT_CASES[1];
+  const ma=computeInvestmentCase(a).metrics,mb=computeInvestmentCase(b).metrics;
+  const p=fixtureBy(a.project_id);
+  const row=(n,x,y,f=won)=>'<tr><th>'+n+'</th><td>'+f(x)+'</td><td>'+f(y)+'</td></tr>';
+  app.innerHTML='<h1>물건 분석·비교 <span class="badge">FIXTURE</span></h1><div class="card warn"><b>이 화면만 아직 synthetic 물건입니다.</b><div class="meta">실거래/건축물대장 adapter가 실제 구역에 연결되면 real case 입력으로 치환합니다.</div></div>'+
+  '<h2>'+esc(p.canonical_name)+' · '+esc(a.label)+'</h2><div class="kpis"><div class="kpi">지금 필요한 내 돈<strong>'+won(ma.initial_equity_required)+'</strong></div><div class="kpi">앞으로 추가 내 돈<strong>'+won(ma.future_additional_equity)+'</strong></div><div class="kpi">최대 누적 자기자금<strong>'+won(ma.peak_cumulative_equity)+'</strong></div><div class="kpi">전체 경제적 비용<strong>'+won(ma.total_economic_cost)+'</strong></div><div class="kpi">기준 세전손익<strong>'+won(ma.pretax_profit)+'</strong></div><div class="kpi warn">가장 중요한 미확인사항<strong style="font-size:14px">'+esc(a.unresolved_items[0])+'</strong></div></div>'+
+  '<h2>상세 비교</h2><table><thead><tr><th>지표</th><th>'+esc(a.label)+'</th><th>'+esc(b.label)+'</th></tr></thead><tbody>'+row("초기 자기자금",ma.initial_equity_required,mb.initial_equity_required)+row("최대 누적 자기자금",ma.peak_cumulative_equity,mb.peak_cumulative_equity)+row("총 경제적 비용",ma.total_economic_cost,mb.total_economic_cost)+row("세전손익",ma.pretax_profit,mb.pretax_profit)+row("MOIC",ma.moic,mb.moic,x=>x.toFixed(2)+"x")+row("XIRR",ma.xirr,mb.xirr,pct)+row("손익분기 매도가",ma.break_even_exit_price,mb.break_even_exit_price)+'</tbody></table>';
 }
 function render(){({home,map,search,detail,analysis}[view]||home)()}
 render();
