@@ -1,0 +1,256 @@
+{
+  "schema_version": "1.0",
+  "reviewed_at": "2026-09-28",
+  "rule": "SEOUL_CLEANUP의 현재단계 표시는 discovery snapshot이다. 법정 event와 효력일은 공식 고시·공고 원문 또는 동등한 1차 행정자료가 연결될 때만 OFFICIAL_CONFIRMED로 승격한다.",
+  "targets": [
+    {
+      "project_id": "seoul-11590-02",
+      "short_name": "상도15구역",
+      "validation_status": "PARTIAL_OFFICIAL",
+      "display_snapshot": {
+        "stage_raw": "조합설립인가",
+        "observed_at": "2026-09-28",
+        "source_id": "SEOUL_CLEANUP",
+        "certainty": "SOURCE_CONFIRMED"
+      },
+      "legal_events": [
+        {
+          "event_type_code": "ZONE_DESIGNATION",
+          "event_name_official": "상도15구역 주택정비형 재개발사업 정비계획 결정 및 정비구역 지정, 지구단위계획(구역) 결정 및 지형도면 고시",
+          "event_date": "2025-04-03",
+          "notice_number": "서울특별시 고시 제2025-178호",
+          "source_id": "LAND_USE_EUM_GOV_NOTICE",
+          "source_locator": "https://www.eum.go.kr/web/gs/gv/gvGosiDet.jsp?seq=610123",
+          "certainty": "OFFICIAL_CONFIRMED"
+        }
+      ],
+      "governance_events": [
+        {
+          "event_type_code": "IMPLEMENTATION_ACTOR_SNAPSHOT",
+          "event_name_official": "추진위/조합장 표시",
+          "actor_name": "대신자산신탁 주식회사",
+          "event_date": null,
+          "observed_at": "2026-09-28",
+          "source_id": "SEOUL_CLEANUP",
+          "source_locator": "https://cleanup.seoul.go.kr/cafe/cleanup-infoothbcrt/executeNew.do?cafeId=590900001319C66&ctznOthbcAt=N",
+          "certainty": "SOURCE_CONFIRMED",
+          "legal_effect_status": "NEEDS_REVIEW"
+        }
+      ],
+      "note": "정보몽땅은 현재단계를 조합설립인가로 표시하지만 사업주체 칸에는 대신자산신탁이 표시된다. 신탁방식/사업시행자 지정 사실의 법적 event는 별도 원문 확인 후 저장한다."
+    },
+    {
+      "project_id": "seoul-11590-06",
+      "short_name": "흑석9재정비촉진구역",
+      "validation_status": "SNAPSHOT_ONLY",
+      "display_snapshot": {
+        "stage_raw": "착공",
+        "observed_at": "2026-09-28",
+        "source_id": "SEOUL_CLEANUP",
+        "certainty": "SOURCE_CONFIRMED"
+      },
+      "legal_events": [],
+      "governance_events": [],
+      "note": "착공의 정확한 신고/효력일 원문을 추가 확인한다."
+    },
+    {
+      "project_id": "seoul-11170-03",
+      "short_name": "한남5재정비촉진구역",
+      "validation_status": "OFFICIAL_EVENT_LINKED",
+      "display_snapshot": {
+        "stage_raw": "사업시행인가",
+        "observed_at": "2026-09-28",
+        "source_id": "SEOUL_CLEANUP",
+        "certainty": "SOURCE_CONFIRMED"
+      },
+      "legal_events": [
+        {
+          "event_type_code": "IMPLEMENTATION_PLAN_APPROVAL",
+          "event_name_official": "한남5재정비촉진구역 주택재개발정비사업 사업시행인가 고시",
+          "event_date": "2026-04-30",
+          "notice_number": "서울특별시 용산구 고시 제2026-55호",
+          "source_id": "LAND_USE_EUM_GOV_NOTICE",
+          "source_locator": "https://www.eum.go.kr/web/gs/gv/gvGosiDet.jsp?seq=637767",
+          "certainty": "OFFICIAL_CONFIRMED"
+        }
+      ],
+      "governance_events": [],
+      "note": "토지이음 고시 상세에서 담당기관·고시번호·고시일·첨부 원문을 확인."
+    },
+    {
+      "project_id": "seoul-11170-05",
+      "short_name": "청파2구역",
+      "validation_status": "SNAPSHOT_ONLY",
+      "display_snapshot": {
+        "stage_raw": "조합설립인가",
+        "observed_at": "2026-09-28",
+        "source_id": "SEOUL_CLEANUP",
+        "certainty": "SOURCE_CONFIRMED"
+      },
+      "legal_events": [],
+      "governance_events": [],
+      "note": "조합설립인가 원문 번호/인가일을 1차 행정자료로 확인하기 전 날짜를 채우지 않는다."
+    },
+    {
+      "project_id": "seoul-11440-02",
+      "short_name": "공덕6구역",
+      "validation_status": "SOURCE_HISTORY_ONLY",
+      "display_snapshot": {
+        "stage_raw": "사업시행인가",
+        "observed_at": "2026-09-28",
+        "source_id": "SEOUL_CLEANUP",
+        "certainty": "SOURCE_CONFIRMED"
+      },
+      "legal_events": [],
+      "governance_events": [],
+      "note": "정보몽땅에서 사업시행인가 현재단계는 확인되나 원 고시 원문을 아직 연결하지 않았다."
+    },
+    {
+      "project_id": "seoul-11380-03",
+      "short_name": "불광제5구역",
+      "validation_status": "SOURCE_HISTORY_ONLY",
+      "display_snapshot": {
+        "stage_raw": "관리처분인가",
+        "observed_at": "2026-09-28",
+        "source_id": "SEOUL_CLEANUP",
+        "certainty": "SOURCE_CONFIRMED"
+      },
+      "legal_events": [
+        {
+          "event_type_code": "IMPLEMENTATION_PLAN_APPROVAL",
+          "event_name_official": "사업시행인가",
+          "event_date": "2021-09-23",
+          "notice_number": null,
+          "source_id": "SEOUL_CLEANUP",
+          "source_locator": "https://cleanup.seoul.go.kr/assc/scrin-bbs/execute.do?cafeId=380100001036U35",
+          "certainty": "SOURCE_CONFIRMED"
+        },
+        {
+          "event_type_code": "MANAGEMENT_DISPOSITION_APPROVAL",
+          "event_name_official": "관리처분인가",
+          "event_date": "2024-11-28",
+          "notice_number": null,
+          "source_id": "SEOUL_CLEANUP",
+          "source_locator": "https://cleanup.seoul.go.kr/assc/scrin-bbs/execute.do?cafeId=380100001036U35",
+          "certainty": "SOURCE_CONFIRMED"
+        }
+      ],
+      "governance_events": [],
+      "note": "서울시 공식 정보몽땅 단계 이력의 날짜다. 해당 구청 원 고시가 연결되기 전 OFFICIAL_CONFIRMED로 승격하지 않는다."
+    },
+    {
+      "project_id": "seoul-11710-01",
+      "short_name": "잠실5단지",
+      "validation_status": "OFFICIAL_EVENT_LINKED",
+      "display_snapshot": {
+        "stage_raw": "사업시행인가",
+        "observed_at": "2026-09-28",
+        "source_id": "SEOUL_CLEANUP",
+        "certainty": "SOURCE_CONFIRMED"
+      },
+      "legal_events": [
+        {
+          "event_type_code": "IMPLEMENTATION_PLAN_APPROVAL",
+          "event_name_official": "잠실5단지아파트 재건축정비사업 사업시행계획인가 고시",
+          "event_date": "2026-07-09",
+          "notice_number": "서울특별시 송파구 고시 제2026-90호",
+          "source_id": "SONGPA_NOTICE_BOARD",
+          "source_locator": "https://www.songpa.go.kr/www/selectGosiList.do?key=2776&not_ancmt_mgt_no=&pageIndex=12&searchCnd=all&searchKrwd=2026",
+          "certainty": "OFFICIAL_CONFIRMED"
+        },
+        {
+          "event_type_code": "NOTICE_CORRECTION",
+          "event_name_official": "잠실5단지아파트 재건축정비사업 사업시행계획인가(정정) 고시",
+          "event_date": "2026-08-20",
+          "notice_number": "서울특별시 송파구 고시 제2026-99호",
+          "source_id": "SONGPA_NOTICE_BOARD",
+          "source_locator": "https://www.songpa.go.kr/www/selectGosiList.do?key=2776&not_ancmt_se_code=&pageIndex=11",
+          "certainty": "OFFICIAL_CONFIRMED"
+        }
+      ],
+      "governance_events": [],
+      "note": "정정고시는 새 단계 진입으로 취급하지 않고 원 사업시행계획인가 고시에 연결한다."
+    },
+    {
+      "project_id": "seoul-11470-01",
+      "short_name": "목동10단지",
+      "validation_status": "PARTIAL_OFFICIAL",
+      "display_snapshot": {
+        "stage_raw": "조합설립인가",
+        "observed_at": "2026-09-28",
+        "source_id": "SEOUL_CLEANUP",
+        "certainty": "SOURCE_CONFIRMED"
+      },
+      "legal_events": [
+        {
+          "event_type_code": "ZONE_DESIGNATION",
+          "event_name_official": "목동10단지 아파트 재건축 정비사업 정비계획 수립 및 정비구역 지정, 서울목동지구 택지개발사업 지구단위계획 결정(변경) 및 특별계획구역 10 세부개발계획 수립·지형도면 고시",
+          "event_date": "2025-07-31",
+          "notice_number": "서울특별시 고시 제2025-420호",
+          "source_id": "LAND_USE_EUM_GOV_NOTICE",
+          "source_locator": "https://www.eum.go.kr/web/gs/gv/gvGosiDet.jsp?seq=618080",
+          "certainty": "OFFICIAL_CONFIRMED"
+        }
+      ],
+      "governance_events": [],
+      "note": "현재 표시단계 조합설립인가의 정확한 법적 event/방식은 별도 원문 확인 필요."
+    },
+    {
+      "project_id": "seoul-11440-06",
+      "short_name": "망원동 신속통합기획 후보지",
+      "validation_status": "POLICY_STAGE_ONLY",
+      "display_snapshot": {
+        "stage_raw": "정비계획 수립",
+        "observed_at": "2026-09-28",
+        "source_id": "SEOUL_CLEANUP",
+        "certainty": "SOURCE_CONFIRMED"
+      },
+      "legal_events": [],
+      "policy_events": [
+        {
+          "event_type_code": "POLICY_PROGRAM_STATUS",
+          "event_name_official": "신속통합기획 후보지 / 정비계획 수립",
+          "event_date": null,
+          "observed_at": "2026-09-28",
+          "source_id": "SEOUL_CLEANUP",
+          "certainty": "SOURCE_CONFIRMED"
+        }
+      ],
+      "governance_events": [],
+      "note": "신속통합기획 상태를 조합설립인가 등 도시정비법상 인가 event로 변환하지 않는다."
+    },
+    {
+      "project_id": "seoul-11380-02",
+      "short_name": "독바위역세권",
+      "validation_status": "OFFICIAL_NOTICE_INDEXED",
+      "display_snapshot": {
+        "stage_raw": "사업시행인가",
+        "observed_at": "2026-09-28",
+        "source_id": "SEOUL_CLEANUP",
+        "certainty": "SOURCE_CONFIRMED"
+      },
+      "legal_events": [
+        {
+          "event_type_code": "ZONE_DESIGNATION",
+          "event_name_official": "독바위역세권 도시정비형 재개발정비구역 지정 - 독바위 지구단위계획 결정(변경) 및 지형도면 고시",
+          "event_date": "2019-07-25",
+          "notice_number": "서울특별시 고시 제2019-237호",
+          "source_id": "LAND_USE_EUM_GOV_NOTICE",
+          "source_locator": "https://www.eum.go.kr/web/gs/gv/gvGosiDet.jsp?seq=45973",
+          "certainty": "OFFICIAL_CONFIRMED"
+        },
+        {
+          "event_type_code": "IMPLEMENTATION_PLAN_APPROVAL",
+          "event_name_official": "독바위역세권 도시정비형 재개발사업 사업시행계획인가 고시",
+          "event_date": null,
+          "notice_number": "서울특별시 은평구 고시 제2026-37호",
+          "source_id": "SEOUL_WEEKLY_NOTICE_INDEX",
+          "source_locator": "https://news.seoul.go.kr/citybuild/archives/539225",
+          "certainty": "SOURCE_CONFIRMED"
+        }
+      ],
+      "governance_events": [],
+      "note": "서울시 공식 고시 인덱스에서 제2026-37호 존재·제목은 확인. 직접 고시 원문에서 고시일을 확정하기 전 event_date는 null."
+    }
+  ]
+}
