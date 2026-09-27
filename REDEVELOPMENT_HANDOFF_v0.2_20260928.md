@@ -600,7 +600,8 @@ flowchart TD
 - 실제 API key를 이용한 live RTMS / Building HUB call
 - deep target 최소 5개에 실거래 + 건축물대장까지 실제 연결
 - 청파2 / 공덕6 / 흑석9 / 망원 등 남은 원문 deep validation
-- 공식 정비구역 polygon source 확정
+- 서울플랜+ SHP 파일 실제 수집·파싱 및 ADMIN_CANDIDATE 지도 연결
+- 상용화용 정비구역 polygon source 확정
 - 실제 매물 입력 / dogfood
 - 지인 usability test
 
