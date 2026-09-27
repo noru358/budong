@@ -10,6 +10,9 @@
 - 신속통합기획은 POLICY_PROGRAM_EVENT로 취급하며 조합설립인가·사업시행계획인가 같은 법정 stage를 대체하지 않는다.
 - 권리산정기준일, 조합원 지위, 분양자격, 거래규제는 RIGHTS_REGULATION_EVENT로 stage와 분리한다.
 - 자료가 부족하면 NEEDS_REVIEW. AI가 PASS/FAIL 법률결론을 자동 확정하지 않는다.
+- **포털의 '현재단계 표시'와 법적 event는 동일 객체가 아니다.** 현재단계 표시는 `observed_at`이 있는 snapshot으로 저장하고, 법정 인가·지정은 고시/공고 근거가 있는 `PROJECT_STAGE_EVENT`로 저장한다.
+- 신탁방식처럼 조합과 다른 사업시행자가 존재할 수 있으므로 `사업시행자 지정/신탁사 표시/시행방식`은 `PROJECT_GOVERNANCE_EVENT`로 분리한다.
+- 고시 정정은 새로운 사업단계로 올리지 않고 원 event에 연결하는 correction event다.
 
 ### V1 핵심 stage dictionary
 1. 정비구역 지정·고시
@@ -44,6 +47,11 @@ source → source_license → fact_assertion → entity/event → source_lineage
 - investment fixture 20개
 - 경계는 ANALYSIS_ESTIMATE로 표시
 - 공식 데이터인 척 하지 않는다.
+
+### Gate 2 현재 진행
+- 서울 실제 shallow seed 44개 작성 완료: `data/seoul_seed_v1.json`
+- deep validation 10개 선정: `data/deep_validation_v1.json`
+- 2026-09-28 현재 고시 원문/공식 인덱스 연결을 진행 중이며, 원문 없는 날짜는 채우지 않는다.
 
 ### Gate 2 목표
 - 서울 30~50개 구역: 이름/경계/사업유형/공식 현재단계/단계일
