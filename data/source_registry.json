@@ -135,6 +135,36 @@
       "access_status": "NOT_YET_REQUESTED",
       "license_note": "공공저작물 제1유형 계열 후보이나, V1에 필요한 정비구역 레이어의 존재·정확도·세부 이용조건을 검증하기 전 YELLOW 유지.",
       "data_fit_note": "특정 정비구역 경계 layer 미확정."
+    },
+    {
+      "source_id": "LAND_USE_EUM_GOV_NOTICE",
+      "name": "토지이음 고시정보(행정기관 직접 등재)",
+      "institution": "국토교통부/해당 행정기관",
+      "purpose": "정비구역 지정·사업시행인가 등 고시 원문 및 메타데이터",
+      "readiness": "YELLOW",
+      "access_status": "PUBLIC",
+      "license_note": "고시정보는 해당 행정기관이 직접 등재하며, 페이지의 공공누리 표시는 자료별 확인이 필요하므로 상용화 전 개별 표시조건을 재검토.",
+      "data_fit_note": "법적 event의 고시번호·고시일·첨부 원문 확인용 1차 행정자료."
+    },
+    {
+      "source_id": "SONGPA_NOTICE_BOARD",
+      "name": "송파구청 고시공고",
+      "institution": "서울특별시 송파구",
+      "purpose": "송파구 정비사업 고시·공고 원문/메타데이터",
+      "readiness": "YELLOW",
+      "access_status": "PUBLIC",
+      "license_note": "공식 자치구 게시판. 상용 재배포 범위는 문서별/저작권정책 재확인.",
+      "data_fit_note": "잠실5단지 사업시행계획인가 및 정정 고시 확인."
+    },
+    {
+      "source_id": "SEOUL_WEEKLY_NOTICE_INDEX",
+      "name": "서울시 및 자치구 도시계획 관련 주요 열람공고 및 결정고시",
+      "institution": "서울특별시",
+      "purpose": "자치구 고시·공고 탐색 인덱스",
+      "readiness": "YELLOW",
+      "access_status": "PUBLIC",
+      "license_note": "공식 서울시 탐색 인덱스. 법적 효력일 확정은 연결된 원 고시를 우선.",
+      "data_fit_note": "독바위역세권 등 자치구 고시 번호·제목 discovery."
     }
   ],
   "user_api_access_updated_at": "2026-09-28"
