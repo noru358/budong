@@ -20,11 +20,13 @@
     },
     {
       "source_id": "MOLIT_RTMS_MULTIFAMILY_SALE",
-      "name": "국토교통부 연립다세대 매매 실거래가 공개자료",
+      "name": "국토교통부 연립다세대 매매 실거래가 자료",
       "institution": "국토교통부",
-      "purpose": "실거래",
+      "purpose": "연립·다세대 실거래",
       "readiness": "GREEN",
-      "license_note": "공공데이터포털 카탈로그에서 이용허락범위 제한 없음 확인. 실제 호출은 서비스키 필요."
+      "license_note": "공공데이터포털: 무료, 이용허락범위 제한 없음. 개발계정 승인 사용자 확인.",
+      "access_status": "DEV_APPROVED_USER_CONFIRMED",
+      "catalog_url": "https://www.data.go.kr/data/15126467/openapi.do"
     },
     {
       "source_id": "MOLIT_BUILDING_HUB",
@@ -32,7 +34,9 @@
       "institution": "국토교통부",
       "purpose": "건축물대장",
       "readiness": "GREEN",
-      "license_note": "공공데이터포털 카탈로그에서 이용허락범위 제한 없음 확인. 실제 호출은 서비스키 필요."
+      "license_note": "공공데이터포털: 무료, 이용허락범위 제한 없음. 개발계정 승인 사용자 확인.",
+      "access_status": "DEV_APPROVED_USER_CONFIRMED",
+      "catalog_url": "https://www.data.go.kr/data/15134735/openapi.do"
     },
     {
       "source_id": "SEOUL_OFFICIAL_NOTICE",
@@ -41,6 +45,97 @@
       "purpose": "단계·경계·권리/규제 사실의 1차 원문",
       "readiness": "WHITE",
       "license_note": "문서별 원문 위치와 재사용 조건을 adapter 연결 시 기록."
+    },
+    {
+      "source_id": "MOLIT_RTMS_DETACHED_SALE",
+      "name": "국토교통부 단독/다가구 매매 실거래가 자료",
+      "institution": "국토교통부",
+      "purpose": "단독·다가구 실거래",
+      "readiness": "GREEN",
+      "access_status": "DEV_APPROVED_USER_CONFIRMED",
+      "license_note": "공공데이터포털 이용허락범위 제한 없음. 개발계정 승인 사용자 확인.",
+      "catalog_url": "https://www.data.go.kr/data/15126465/openapi.do"
+    },
+    {
+      "source_id": "MOLIT_RTMS_APT_RENT",
+      "name": "국토교통부 아파트 전월세 실거래가 자료",
+      "institution": "국토교통부",
+      "purpose": "아파트 전월세",
+      "readiness": "GREEN",
+      "access_status": "DEV_APPROVED_USER_CONFIRMED",
+      "license_note": "공공데이터포털 이용허락범위 제한 없음. 개발계정 승인 사용자 확인.",
+      "catalog_url": "https://www.data.go.kr/data/15126474/openapi.do"
+    },
+    {
+      "source_id": "MOLIT_RTMS_APT_SALE_DETAIL",
+      "name": "국토교통부 아파트 매매 실거래가 상세 자료",
+      "institution": "국토교통부",
+      "purpose": "아파트 매매 상세",
+      "readiness": "GREEN",
+      "access_status": "DEV_APPROVED_USER_CONFIRMED",
+      "license_note": "공공데이터포털 이용허락범위 제한 없음. 개발계정 승인 사용자 확인.",
+      "catalog_url": "https://www.data.go.kr/data/15126468/openapi.do"
+    },
+    {
+      "source_id": "MOLIT_RTMS_APT_PRESALE",
+      "name": "국토교통부 아파트 분양권전매 실거래가 자료",
+      "institution": "국토교통부",
+      "purpose": "아파트 분양권전매",
+      "readiness": "GREEN",
+      "access_status": "DEV_APPROVED_USER_CONFIRMED",
+      "license_note": "공공데이터포털 이용허락범위 제한 없음. 개발계정 승인 사용자 확인.",
+      "catalog_url": "https://www.data.go.kr/data/15126471/openapi.do"
+    },
+    {
+      "source_id": "MOLIT_RTMS_APT_SALE",
+      "name": "국토교통부 아파트 매매 실거래가 자료",
+      "institution": "국토교통부",
+      "purpose": "아파트 매매",
+      "readiness": "GREEN",
+      "access_status": "DEV_APPROVED_USER_CONFIRMED",
+      "license_note": "공공데이터포털 이용허락범위 제한 없음. 개발계정 승인 사용자 확인.",
+      "catalog_url": "https://www.data.go.kr/data/15126469/openapi.do"
+    },
+    {
+      "source_id": "SEOUL_OPEN_REDEVELOPMENT_STATUS",
+      "name": "서울시 도시계획 정비사업 현황",
+      "institution": "서울특별시",
+      "purpose": "정비사업 현황 보조 검증",
+      "readiness": "RED",
+      "access_status": "PUBLIC",
+      "license_note": "공공누리 제4유형(출처표시+비상업+변경금지). 상용 product source에서 기본 차단; private V1 보조검증만.",
+      "data_fit_note": "법적 효력이 없는 참고자료."
+    },
+    {
+      "source_id": "SEOUL_OPEN_PLANNING_NOTICES",
+      "name": "서울시 도시계획 결정고시 정보",
+      "institution": "서울특별시",
+      "purpose": "결정고시 탐색 보조",
+      "readiness": "RED",
+      "access_status": "PUBLIC",
+      "license_note": "공공누리 제4유형. 상용 product source에서 기본 차단.",
+      "data_fit_note": "법적 효력이 없는 참고자료; 실제 고시 원문 assertion을 별도 연결."
+    },
+    {
+      "source_id": "SEOUL_OPEN_BOUNDARY_SHP",
+      "name": "서울시 의제처리구역 위치정보",
+      "institution": "서울특별시",
+      "purpose": "정비구역 등 위치/경계 보조",
+      "readiness": "RED",
+      "access_status": "PUBLIC",
+      "license_note": "공공누리 제4유형. 상용 product source에서 기본 차단.",
+      "data_fit_note": "법적 효력이 없는 참고용 공간자료."
+    },
+    {
+      "source_id": "VWORLD_WFS_WMS",
+      "name": "국토교통부 공간정보오픈플랫폼 VWorld WMS/WFS",
+      "institution": "국토교통부",
+      "purpose": "상업확장 가능한 경계 source 후보",
+      "readiness": "YELLOW",
+      "access_status": "NOT_YET_REQUESTED",
+      "license_note": "공공저작물 제1유형 계열 후보이나, V1에 필요한 정비구역 레이어의 존재·정확도·세부 이용조건을 검증하기 전 YELLOW 유지.",
+      "data_fit_note": "특정 정비구역 경계 layer 미확정."
     }
-  ]
+  ],
+  "user_api_access_updated_at": "2026-09-28"
 }
