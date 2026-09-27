@@ -37,7 +37,7 @@
 - 불광제5 공식 정보몽땅 stage history 연결
 - RTMS + Building HUB adapter 코드 구현
 - 실제 서울 seed를 홈/검색/상세 UI에 연결
-- 공식 경계가 없으므로 지도 polygon은 FAIL-CLOSED
+- 지도 경계 원천 결정: 서울플랜+ SHP를 개인 V1의 `ADMIN_CANDIDATE`로 사용 예정; 파일 미수집 상태라 현재 UI는 FAIL-CLOSED
 - 개별 물건 분석은 아직 fixture
 
 ## 데이터 안전 규칙
@@ -60,5 +60,6 @@
 1. 사용자가 `DATA_GO_KR_SERVICE_KEY`를 안전하게 주입
 2. RTMS / Building HUB live smoke + 5개 deep target 실제 데이터 연결
 3. 나머지 deep target 공식 고시 원문 확정
-4. 공식 경계 source 확정 및 boundary adapter
-5. 실제 매물 dogfood → GATE 3
+4. 서울플랜+ SHP 수집·boundary adapter → 개인 V1 지도 연결
+5. 상용판용 경계 source는 별도 GREEN/YELLOW 원천으로 교체
+6. 실제 매물 dogfood → GATE 3
