@@ -618,9 +618,14 @@ flowchart TD
 `noru358/budong → Settings → Secrets and variables → Actions → New repository secret`
 
 - Name: `DATA_GO_KR_SERVICE_KEY`
-- Secret: 공공데이터포털에서 발급된 서비스키
+- Secret: 공공데이터포털의 **일반 인증키(Decoding)**
 
-키를 README, issue, commit, source code에 넣지 않는다.
+그 다음:
+`Actions → Live Data Smoke → Run workflow → Run workflow`
+
+이 workflow는 `scripts/live_data_smoke.mjs`를 실행해 RTMS 연립다세대 + Building HUB 실제 연결을 확인한다. Secret 값은 로그/파일에 출력하지 않는다.
+
+키를 README, issue, commit, source code 또는 채팅에 넣지 않는다.
 
 ### 로컬 개발만 할 경우
 
