@@ -3,6 +3,16 @@
 작성일: 2026-09-28  
 상태: **GATE 2 — REAL DATA INTEGRATION IN PROGRESS**
 
+### 2026-09-28 구현 체크포인트
+- shallow seed 44개: DONE
+- deep target 10개: DONE
+- 공식 고시 evidence 1차 연결: IN PROGRESS
+- RTMS / Building HUB adapter code: DONE
+- API 활용신청: USER CONFIRMED DONE
+- API live smoke: WAITING FOR SECRET INJECTION
+- real-seed 홈/검색/상세 UI: DONE
+- official boundary: NOT DONE
+
 ## 1. 현재 전환
 
 GATE 1의 synthetic fixture 구조를 유지한 채 실제 서울 데이터로 치환한다.
