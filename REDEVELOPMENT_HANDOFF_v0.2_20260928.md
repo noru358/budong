@@ -555,70 +555,79 @@ flowchart TD
 
 # 14. CURRENT
 
-현재:
-- 시장조사/역분해/초기 제품설계 완료
-- Claude 외부 검토 완료
-- V1 범위는 본인+소수 지인 검증으로 축소
-- 법적 용어/사업단계는 공식 명칭을 정본으로 유지하는 것으로 재확정
-- 초보 표현은 보조 레이어로만 사용
-- 상업적 이용 가능 여부는 소스별 메타데이터/Lineage로 처음부터 저장
-- 홈/지도/검색 모두 핵심
-- 유사검색 + 결과 사업단계 노출은 V1 Search baseline
-- 재개발닷컴의 간결한 IA와 검색/단계 노출/탭 구조를 UX baseline으로 삼음
-- 커뮤니티/전국매물/결제/경매 등은 V1 제외
+현재 상태(2026-09-28):
+
+- **GATE 0 완료** — `V1_PROTOTYPE_CONTRACT.md`를 확정함.
+- 정본 원칙 유지:
+  - 공식 사업단계·법적/권리 용어가 canonical
+  - 쉬운 설명은 보조 레이어
+  - 사업단계와 권리·규제 Event 분리
+  - unknown은 0/PASS가 아니라 `NEEDS_REVIEW`
+- Legal/Ontology, Data, Finance, Search, UX 5개 워크스트림 1차 착수 완료.
+- `src/prototype.mjs`
+  - 서울형 synthetic project fixture 10개
+  - investment case fixture 20개
+  - exact / alias exact / prefix / substring / trigram fuzzy 검색
+  - 초기 자기자금 / 향후 추가자금 / 최대 누적 자기자금 / 총 경제적 비용 / 세전손익 / MOIC / XIRR / 손익분기 매도가 계산
+  - 기납부 분담금 중복산입 방지
+  - 보증금·대출과 경제적 비용 분리
+  - 핵심 unknown fail-closed
+- `db/schema.sql`
+  - PostgreSQL `pg_trgm`
+  - project / alias / stage event / rights-regulation event / boundary version
+  - source / source_license / fact_assertion / source_lineage
+  - investment_case
+- `data/source_registry.json`
+  - 국가법령정보센터: YELLOW
+  - 서울 정비사업 정보몽땅: YELLOW
+  - 국토부 연립다세대 매매 실거래가: GREEN
+  - 국토부 Building HUB 건축물대장: GREEN
+  - 서울시·자치구 고시/공고: WHITE
+- `web/index.html`
+  - 홈 / 지도 / 검색 / 구역 상세 / 물건 분석·비교 5화면 fixture prototype
+  - 지도는 공식 경계가 아닌 fixture 좌표도임을 명시
+  - 권리/규제는 원문 확인 전 `NEEDS_REVIEW`
+- `.github/workflows/test.yml`로 main push마다 `npm test`를 검증.
+
+아직 완료되지 않은 것:
+- 실제 공공데이터 서비스키/API 연결
+- 서울 30~50개 실제 구역 seed
+- 5~10개 실제 구역 deep validation
+- 공식 경계 adapter
+- 고시/공고 원문 assertion/lineage
+- 실제 매물 dogfood
+- 소수 지인 사용성 테스트
 
 ---
 
-# 15. NEXT — 다음 세션이 바로 해야 할 일
+# 15. NEXT
 
-## Step 1. `V1_PROTOTYPE_CONTRACT.md` 작성
-2~4페이지로 아래만 고정:
-1. 목적
-2. 핵심 동선
-3. 5개 화면
-4. Tier 1 데이터
-5. 계산 규칙
-6. 공식 용어/권리 규칙
-7. Search 요구사항
-8. 완료조건 / 금지사항
+## A. 사용자만 할 수 있는 외부 액션
 
-## Step 2. 다섯 트랙 병렬 착수
-### Legal/Ontology
-- 재개발/재건축/신통 등 V1에 포함할 유형 목록
-- 공식 사업단계 Dictionary
-- 권리/규제 Event Dictionary
+1. 공공데이터포털에서 실제 호출용 서비스키 준비
+   - 국토교통부 연립다세대 매매 실거래가
+   - 국토교통부 Building HUB 건축물대장정보
+2. 서울 정비사업 정보몽땅의 대량수집/API/상업적 재사용 조건을 약관 또는 담당부서 기준으로 확인
+3. 공식 경계 데이터를 어떤 외부 원천(VWorld/서울 GIS/공식 고시 첨부 등)으로 받을지 결정 후, 필요한 경우 해당 API 키 신청
 
-### Data
-- API 신청/확인
-- 30~50 구역 seed
-- 5~10개 상세 구역 선정
-- Source/License Registry
+비밀키는 저장소에 커밋하지 않는다. 향후 환경변수/Secret으로 주입한다.
 
-### Finance
-- fixture 20~30개
-- cashflow engine
-- 중복산입/IRR edge case test
+## B. 다음 구현 순서
 
-### Search
-- canonical name / aliases / address token schema
-- pg_trgm prototype
-- 결과 리스트에 단계 포함
+외부 키를 기다리지 않고 할 수 있는 범위는 계속 fixture/manual seed로 진행한다.
 
-### UX
-- 홈
-- 지도
-- 검색
-- 구역상세
-- 물건분석/비교
-fixture 기반 구현
-
-## Step 3. Gate 1 통합
-실제 API 승인을 기다리지 말고 fixture/manual seed로 완성한다.
+1. Source Adapter 인터페이스 고정
+2. 실제 서울 구역 30~50개 seed 목록 작성
+3. 그중 5~10개 deep validation 대상 선정
+4. 고시/공고 → FACT_ASSERTION → PROJECT_STAGE_EVENT / RIGHTS_REGULATION_EVENT 연결
+5. 실거래 / 건축물대장 adapter 연결
+6. 공식 경계 adapter 연결
+7. fixture prototype을 실제 데이터로 치환
+8. GATE 2 정합성 QA
+9. 실제 매물 dogfood → GATE 3
 
 ---
 
 # 16. 다음 세션 첫 지시문
 
-아래 문장을 그대로 새 세션 첫 메시지로 사용 가능:
-
-> 첨부한 `REDEVELOPMENT_HANDOFF_v0.2_20260928.md`를 이 프로젝트의 현재 정본으로 읽어. 이전 설계를 임의로 재해석하지 말고, 공식 사업단계·법적/권리 용어를 그대로 유지한다. 초보자용 쉬운 표현은 보조 레이어로만 둔다. CURRENT/NEXT 기준으로 이제 `V1_PROTOTYPE_CONTRACT`를 만든 뒤 Legal/Ontology, Data, Finance, Search, UX 5개 트랙을 병렬 착수하자. 실제 API를 기다리지 말고 fixture/manual seed를 사용해 GATE 1 Fixture Prototype까지 진행한다. 프로젝트 범위를 임의로 늘리지 마.
+> `README.md`, `REDEVELOPMENT_HANDOFF_v0.2_20260928.md`, `V1_PROTOTYPE_CONTRACT.md`를 정본으로 읽어. GATE 0은 이미 확정됐고 5개 워크스트림의 fixture 구현도 시작되어 있으므로 계약을 다시 설계하지 마. `src/prototype.mjs`, `tests/prototype.test.mjs`, `db/schema.sql`, `data/source_registry.json`, `docs/WORKSTREAMS_V1.md`, `web/index.html`을 실제로 읽고 CURRENT/NEXT에서 이어가. 공식 사업단계·법적/권리 용어는 그대로 유지하고 쉬운 표현은 보조 레이어에만 둔다. 실제 API 키가 없어도 manual seed로 진행하되, 실제 사실로 표시하는 값에는 source assertion과 provenance가 반드시 있어야 한다.
