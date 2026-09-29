@@ -555,110 +555,116 @@ flowchart TD
 
 # 14. CURRENT
 
-현재 상태(2026-09-28):
+현재 상태(2026-09-29):
 
-## 완료
+## Gate
 
-- **GATE 0 완료** — `V1_PROTOTYPE_CONTRACT.md` LOCK.
-- **GATE 1 완료** — fixture 기준 5화면 end-to-end + Search + Finance + QA.
-- 사용자가 공공데이터포털 개발계정 활용신청 완료 확인:
-  - 연립다세대 매매
-  - 단독/다가구 매매
-  - 아파트 전월세
-  - 아파트 매매 상세
-  - 아파트 분양권전매
-  - 아파트 매매
-  - Building HUB 건축물대장정보
-- **GATE 2 실제 데이터 통합 진행 중.**
-  - `data/seoul_seed_v1.json`: 서울 실제 정비사업 44개 shallow seed
-  - `data/deep_validation_v1.json`: 10개 deep target
-  - `docs/REAL_DATA_PLAN_V1.md`: real-data source hierarchy / adapter / Gate2 exit
-  - `src/adapters/contracts.mjs`: provenance / license / secret fail-closed 계약
-  - `src/adapters/data_go_kr.mjs`: RTMS + Building HUB request/normalize adapter
-  - `.env.example` + `.gitignore`: API key 비커밋 구조
-- Deep validation에서 실제 데이터 모델을 보정함:
-  - 정보몽땅 `현재단계 표시`는 법적 event가 아니라 source snapshot
-  - 법정 단계는 공식 고시·공고 기반 `PROJECT_STAGE_EVENT`
-  - 신탁/사업시행자 등은 `PROJECT_GOVERNANCE_EVENT`
-  - 고시 정정은 새 단계가 아니라 correction event
-- 1차 공식 근거 연결:
-  - 상도15: 정비구역 지정 고시 제2025-178호 / 2025-04-03
-  - 한남5: 사업시행인가 용산구 고시 제2026-55호 / 2026-04-30
-  - 잠실5: 사업시행계획인가 송파구 고시 제2026-90호 / 2026-07-09
-  - 잠실5 정정: 송파구 고시 제2026-99호 / 2026-08-20
-  - 목동10: 정비구역 지정 서울시 고시 제2025-420호 / 2025-07-31
-  - 독바위역세권: 정비구역 지정 제2019-237호 원문 연결, 사업시행인가 제2026-37호는 공식 서울시 인덱스까지 확인(직접 원문/고시일 추가 확인 필요)
-  - 불광제5: 정보몽땅 stage history에서 사업시행인가 2021-09-23 / 관리처분인가 2024-11-28 확인, 원 구청 고시 연결 전 SOURCE_CONFIRMED 유지
-- `web/index.html`:
-  - 홈/검색/구역 상세은 실제 44개 seed 사용
-  - deep target에는 공식 고시 evidence 표시
-  - 지도는 공식 경계 전 FAIL-CLOSED
-  - 물건 분석만 아직 fixture
+- **GATE 0 DONE** — V1 계약/범위/법적 용어 원칙 Lock.
+- **GATE 1 DONE** — Fixture 5화면 + Search + Finance + QA.
+- **GATE 2 IN PROGRESS** — 실제 서울 데이터 + provenance + 자동 업데이트 체계.
+
+## GATE 2 현재 구현
+
+- `data/seoul_seed_v1.json`: 실제 서울 정비사업 44개 shallow seed
+- `data/deep_validation_v1.json`: deep validation 10개
+- RTMS / Building HUB adapter 구현
+- 홈/검색/구역 상세은 실제 seed 기반
+- 물건 분석은 아직 fixture
+- 서울플랜+ SHP는 개인 V1 `ADMIN_CANDIDATE`, 상용 lineage `RED`
+- 공식 경계 전 지도는 FAIL-CLOSED
+
+### Legal / provenance
+- 정보몽땅 현재단계 = observed snapshot
+- 공식 고시/공고 = PROJECT_STAGE_EVENT의 법적 근거
+- 신탁/사업시행자 = PROJECT_GOVERNANCE_EVENT
+- 권리·규제 = RIGHTS_REGULATION_EVENT
+- 고시 정정 = correction event
+- unknown = NEEDS_REVIEW
+
+### Update pipeline — 신규 반영
+`docs/UPDATE_PIPELINE_V1.md`
+
+```text
+Sensor
+→ Snapshot/API
+→ Diff
+→ Change Candidate
+→ Parser / Entity Matching
+→ Official Evidence Verification
+→ Assertion/Event
+→ UI Current State
+```
+
+구현:
+- `src/updater/core.mjs`: snapshot fingerprint / structured diff / candidate / official promotion gate
+- `config/update_sensors.json`
+  - 정보몽땅 25개 자치구 daily watch
+  - 서울플랜+ weekly version watch
+  - RTMS / Building HUB sensor registry
+  - 서울시+25개 구청 notice parser registry placeholder
+- `scripts/run_update_watch.mjs`: 실제 HTTP snapshot watcher
+- `.github/workflows/update-watch.yml`
+  - 매일 07:20 KST
+  - 첫 실행 baseline
+  - 이후 변경 candidate artifact 생성
+  - main 자동수정 없음
+- discovery source의 변화는 법적 사실을 자동 덮어쓰지 못함.
+
+### Project status board
+- `PROJECT_DASHBOARD.md`를 현행 상태판으로 추가.
+- Gate / 구현현황 / Gate2 Remaining / USER ACTION / AI-CODEX NEXT를 한 장에서 본다.
 
 ## 아직 완료되지 않음
 
-- 실제 API key를 이용한 live RTMS / Building HUB call
-- deep target 최소 5개에 실거래 + 건축물대장까지 실제 연결
-- 청파2 / 공덕6 / 흑석9 / 망원 등 남은 원문 deep validation
-- 서울플랜+ SHP 파일 실제 수집·파싱 및 ADMIN_CANDIDATE 지도 연결
-- 상용화용 정비구역 polygon source 확정
-- 실제 매물 입력 / dogfood
+- DATA_GO_KR_SERVICE_KEY 실제 주입
+- Live Data Smoke 실제 성공 확인
+- 5개 deep target RTMS + Building HUB 실제 연결
+- 정보몽땅 row-level parser
+- 서울시 + 25개 구청 고시·공고 parser
+- PDF/HWP 원문 parser
+- 서울플랜+ SHP 실제 파일 파싱/지도 연결
+- 실제 물건 입력/dogfood
 - 지인 usability test
 
 ---
 
 # 15. NEXT
 
-## A. 사용자만 해야 하는 외부 액션 — 현재 1개
-
-발급된 공공데이터포털 키를 **채팅에 보내지 말고**, 아래 둘 중 하나로 주입한다.
-
-### 권장: GitHub Actions Repository Secret
+## A. 사용자 직접 액션 — 1개 세트
 
 `noru358/budong → Settings → Secrets and variables → Actions → New repository secret`
 
 - Name: `DATA_GO_KR_SERVICE_KEY`
-- Secret: 공공데이터포털의 **일반 인증키(Decoding)**
+- Value: 공공데이터포털 일반 인증키 **Decoding**
 
 그 다음:
+
 `Actions → Live Data Smoke → Run workflow → Run workflow`
 
-이 workflow는 `scripts/live_data_smoke.mjs`를 실행해 RTMS 연립다세대 + Building HUB 실제 연결을 확인한다. Secret 값은 로그/파일에 출력하지 않는다.
+결과만 “성공” 또는 “실패”라고 알려준다. 키 자체는 채팅/README/Issue/Commit에 넣지 않는다.
 
-키를 README, issue, commit, source code 또는 채팅에 넣지 않는다.
+## B. AI / Codex 병렬 작업
 
-### 로컬 개발만 할 경우
+Secret과 무관하게:
+1. 정보몽땅 row parser
+2. 서울시 notice parser
+3. 25개 구청 notice adapter registry
+4. PDF/HWP text extraction
+5. entity matching
+6. deep target 원문 보강
+7. 서울플랜+ SHP parser
+8. “오늘 바뀐 구역” UI
 
-저장소 루트에서 `.env.example`을 `.env`로 복사하고:
-
-```text
-DATA_GO_KR_SERVICE_KEY=발급된키
-```
-
-로컬 `.env`는 `.gitignore` 처리되어 있다.
-
-**둘 중 하나면 충분하다.**
-
-VWorld 등 추가 키는 아직 신청하지 않는다. 공식 경계 source 비교가 끝난 뒤 필요할 때만 요청한다.
-
-## B. 다음 구현
-
-키 주입 전에도:
-1. 나머지 deep target 공식 고시/공고 원문 확정
-2. boundary 후보의 정확도/라이선스 비교
-3. 실데이터 UI와 provenance 강화
-
-키 주입 후 즉시:
-4. RTMS live smoke
-5. Building HUB live smoke
-6. 5개 deep target에 거래/건축물 실제 연결
-7. source lineage + QA
-8. 공식 boundary adapter
-9. GATE 2 종료판정
-10. 실제 매물 dogfood → GATE 3
+Secret 주입 후:
+9. RTMS live smoke
+10. Building HUB live smoke
+11. 최소 5개 deep target 실제 거래/건물 연결
+12. source lineage + QA
+13. GATE 2 종료판정
+14. 실제 매물 dogfood → GATE 3
 
 ---
 
 # 16. 다음 세션 첫 지시문
 
-> `README.md`, `REDEVELOPMENT_HANDOFF_v0.2_20260928.md`, `V1_PROTOTYPE_CONTRACT.md`를 정본으로 읽어. GATE 0과 GATE 1은 완료했고 GATE 2 실제 데이터 통합 중이다. `data/seoul_seed_v1.json`, `data/deep_validation_v1.json`, `src/adapters/contracts.mjs`, `src/adapters/data_go_kr.mjs`, `db/schema.sql`, `web/index.html`을 실제로 읽고 이어가. 포털 current-stage snapshot과 법적 stage event를 혼동하지 말고, 신탁/사업시행자 governance event도 별도 축으로 유지한다. 원문이 없는 날짜·권리사실을 추정하지 않는다. 사용자가 DATA_GO_KR_SERVICE_KEY를 Secret/로컬 env로 주입했다면 live adapter smoke부터 진행한다.
+> `README.md`, `REDEVELOPMENT_HANDOFF_v0.2_20260928.md`, `V1_PROTOTYPE_CONTRACT.md`, `PROJECT_DASHBOARD.md`를 정본/현행 상태로 읽어. GATE 0·1은 완료했고 GATE 2 실제 데이터 통합 중이다. `docs/UPDATE_PIPELINE_V1.md`, `config/update_sensors.json`, `src/updater/core.mjs`, `scripts/run_update_watch.mjs`도 읽어. 업데이트는 Sensor→Snapshot→Diff→Candidate→Official Verification→Assertion 원칙을 유지한다. 정보몽땅/서울플랜+ 변화만으로 법적 사실을 OFFICIAL_CONFIRMED로 자동 승격하지 않는다. 사용자가 DATA_GO_KR_SERVICE_KEY를 주입했다면 Live Data Smoke 결과부터 확인하고 실제 5개 deep target 데이터 연결을 진행한다.
