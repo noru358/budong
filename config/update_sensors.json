@@ -1,0 +1,172 @@
+{
+  "schema_version": "1.0",
+  "timezone": "Asia/Seoul",
+  "default_cadence": "DAILY",
+  "principle": "sensor changes create candidates; they never directly overwrite OFFICIAL_CONFIRMED legal facts",
+  "groups": [
+    {
+      "id": "SEOUL_CLEANUP_PROJECT_LIST",
+      "role": "DISCOVERY",
+      "status": "ACTIVE_SNAPSHOT_WATCH",
+      "source_id": "SEOUL_CLEANUP",
+      "cadence": "DAILY",
+      "sensor_type": "TEMPLATED_HTTP_SNAPSHOT",
+      "url_template": "https://cleanup.seoul.go.kr/cleanup/bsnssttus/lscrMainIndx.do?scupBsnsSttus.signguCode={code}",
+      "change_kind": "SOURCE_PAGE_CHANGED",
+      "districts": [
+        [
+          "11110",
+          "종로구"
+        ],
+        [
+          "11140",
+          "중구"
+        ],
+        [
+          "11170",
+          "용산구"
+        ],
+        [
+          "11200",
+          "성동구"
+        ],
+        [
+          "11215",
+          "광진구"
+        ],
+        [
+          "11230",
+          "동대문구"
+        ],
+        [
+          "11260",
+          "중랑구"
+        ],
+        [
+          "11290",
+          "성북구"
+        ],
+        [
+          "11305",
+          "강북구"
+        ],
+        [
+          "11320",
+          "도봉구"
+        ],
+        [
+          "11350",
+          "노원구"
+        ],
+        [
+          "11380",
+          "은평구"
+        ],
+        [
+          "11410",
+          "서대문구"
+        ],
+        [
+          "11440",
+          "마포구"
+        ],
+        [
+          "11470",
+          "양천구"
+        ],
+        [
+          "11500",
+          "강서구"
+        ],
+        [
+          "11530",
+          "구로구"
+        ],
+        [
+          "11545",
+          "금천구"
+        ],
+        [
+          "11560",
+          "영등포구"
+        ],
+        [
+          "11590",
+          "동작구"
+        ],
+        [
+          "11620",
+          "관악구"
+        ],
+        [
+          "11650",
+          "서초구"
+        ],
+        [
+          "11680",
+          "강남구"
+        ],
+        [
+          "11710",
+          "송파구"
+        ],
+        [
+          "11740",
+          "강동구"
+        ]
+      ],
+      "note": "HTML 변화는 신규/단계변경 가능성을 알리는 discovery signal. source-specific row parser 연결 전에는 NEEDS_PARSER."
+    },
+    {
+      "id": "SEOUL_PLAN_PLUS_BOUNDARY",
+      "role": "DISCOVERY_BOUNDARY",
+      "status": "ACTIVE_SNAPSHOT_WATCH",
+      "source_id": "SEOUL_PLAN_PLUS_BOUNDARY_SHP",
+      "cadence": "WEEKLY",
+      "sensor_type": "HTTP_SNAPSHOT",
+      "url": "https://data.seoul.go.kr/dataList/OA-22712/F/1/datasetView.do",
+      "change_kind": "SOURCE_FILE_VERSION_CHANGED",
+      "note": "새 SHP 버전 발견용. ADMIN_CANDIDATE만 허용하며 법적 OFFICIAL boundary로 자동 승격 금지."
+    },
+    {
+      "id": "SEOUL_CITY_AND_GU_NOTICES",
+      "role": "OFFICIAL_VERIFICATION",
+      "status": "PARSER_REGISTRY_IN_PROGRESS",
+      "source_id": "SEOUL_OFFICIAL_NOTICE",
+      "cadence": "DAILY",
+      "sensor_type": "NOTICE_REGISTRY",
+      "jurisdictions": 26,
+      "note": "서울시 + 25개 자치구 고시·공고 목록을 jurisdiction adapter 단위로 온보딩. 문서 제목/번호/날짜/첨부 원문을 추출해 Candidate Event를 검증."
+    },
+    {
+      "id": "RTMS_REAL_TRANSACTIONS",
+      "role": "STRUCTURED_DATA",
+      "status": "ADAPTER_READY_WAITING_LIVE_SECRET",
+      "source_id": "MOLIT_RTMS_MULTIFAMILY_SALE",
+      "cadence": "DAILY",
+      "sensor_type": "API",
+      "secret": "DATA_GO_KR_SERVICE_KEY"
+    },
+    {
+      "id": "BUILDING_HUB",
+      "role": "STRUCTURED_DATA",
+      "status": "ADAPTER_READY_ON_DEMAND_REFRESH",
+      "source_id": "MOLIT_BUILDING_HUB",
+      "cadence": "ON_DEMAND_PLUS_PERIODIC_REVALIDATION",
+      "sensor_type": "API",
+      "secret": "DATA_GO_KR_SERVICE_KEY"
+    }
+  ],
+  "promotion_policy": {
+    "discovery_sources": [
+      "SEOUL_CLEANUP",
+      "SEOUL_PLAN_PLUS_BOUNDARY_SHP"
+    ],
+    "official_evidence_sources": [
+      "SEOUL_OFFICIAL_NOTICE",
+      "LAND_USE_EUM_GOV_NOTICE",
+      "SONGPA_NOTICE_BOARD"
+    ],
+    "rule": "Discovery-source changes may update observed snapshots/candidates only. OFFICIAL_CONFIRMED requires first-party administrative evidence and exact event metadata."
+  }
+}
