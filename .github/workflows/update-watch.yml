@@ -1,0 +1,43 @@
+name: Update Watch
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "20 22 * * *" # 07:20 Asia/Seoul
+
+permissions:
+  contents: read
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Restore watcher state
+        uses: actions/cache/restore@v4
+        with:
+          path: runtime/update-watch
+          key: update-watch-${{ github.run_id }}
+          restore-keys: |
+            update-watch-
+      - name: Run discovery watchers
+        run: node scripts/run_update_watch.mjs
+      - name: Save watcher state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: runtime/update-watch
+          key: update-watch-${{ github.run_id }}
+      - name: Upload change-candidate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-watch-${{ github.run_id }}
+          path: |
+            runtime/update-watch/state.json
+            runtime/update-watch/candidates.json
+          retention-days: 30
