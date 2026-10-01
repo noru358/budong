@@ -555,7 +555,7 @@ flowchart TD
 
 # 14. CURRENT
 
-현재 상태(2026-09-29):
+현재 상태(2026-10-02):
 
 ## Gate
 
@@ -616,8 +616,6 @@ Sensor
 
 ## 아직 완료되지 않음
 
-- DATA_GO_KR_SERVICE_KEY 실제 주입
-- Live Data Smoke 실제 성공 확인
 - 5개 deep target RTMS + Building HUB 실제 연결
 - 정보몽땅 row-level parser
 - 서울시 + 25개 구청 고시·공고 parser
@@ -630,18 +628,15 @@ Sensor
 
 # 15. NEXT
 
-## A. 사용자 직접 액션 — 1개 세트
+## A. 사용자 직접 액션
 
-`noru358/budong → Settings → Secrets and variables → Actions → New repository secret`
+**현재 필수 외부 액션 없음.**
 
-- Name: `DATA_GO_KR_SERVICE_KEY`
-- Value: 공공데이터포털 일반 인증키 **Decoding**
+2026-10-02 Live Data Smoke 성공:
+- RTMS 연립다세대 호출 성공
+- Building HUB 호출 성공
 
-그 다음:
-
-`Actions → Live Data Smoke → Run workflow → Run workflow`
-
-결과만 “성공” 또는 “실패”라고 알려준다. 키 자체는 채팅/README/Issue/Commit에 넣지 않는다.
+초기 403은 Secret에 포털 복사 블록 전체가 들어가 발생했으며, adapter가 실제 key token을 추출하도록 보정해 해결했다.
 
 ## B. AI / Codex 병렬 작업
 
@@ -655,13 +650,11 @@ Secret과 무관하게:
 7. 서울플랜+ SHP parser
 8. “오늘 바뀐 구역” UI
 
-Secret 주입 후:
-9. RTMS live smoke
-10. Building HUB live smoke
-11. 최소 5개 deep target 실제 거래/건물 연결
-12. source lineage + QA
-13. GATE 2 종료판정
-14. 실제 매물 dogfood → GATE 3
+Live API 연결 완료 후:
+9. 최소 5개 deep target 실제 거래/건물 연결
+10. source lineage + QA
+11. GATE 2 종료판정
+12. 실제 매물 dogfood → GATE 3
 
 ---
 
