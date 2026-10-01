@@ -5,22 +5,34 @@ function safeSample(row,fields){
   return Object.fromEntries(fields.map(k=>[k,row[k]??null]));
 }
 
+async function check(name,fn){
+  try{
+    const rows=await fn();
+    console.log(name+"_OK count=",rows.length);
+    return {ok:true,rows};
+  }catch(err){
+    console.error(name+"_FAIL:",err?.message||String(err));
+    return {ok:false,error:err};
+  }
+}
+
 async function main(){
   if(!process.env.DATA_GO_KR_SERVICE_KEY) throw new Error("DATA_GO_KR_SERVICE_KEY is not configured");
+  console.log("DATA_GO_KR_SERVICE_KEY_PRESENT=yes"); // never log value/length/hash
 
-  const rtms=await fetchRtmsTrades({
+  const rtms=await check("RTMS_MULTIFAMILY_SALE",()=>fetchRtmsTrades({
     env:process.env,
     lawdCd:"11590",
     dealYmd:"202609",
     pageNo:1,
     numOfRows:10,
     observedAt:new Date().toISOString()
-  });
-  console.log("RTMS_MULTIFAMILY_SALE_OK count=",rtms.length,
-    "sample=",JSON.stringify(safeSample(rtms[0],["legal_dong","jibun","deal_date","deal_amount_10k_krw"])));
+  }));
+  if(rtms.ok){
+    console.log("RTMS_SAMPLE=",JSON.stringify(safeSample(rtms.rows[0],["legal_dong","jibun","deal_date","deal_amount_10k_krw"])));
+  }
 
-  // Connectivity smoke uses a known existing parcel in 상도동 (not an investment assertion).
-  const bld=await fetchBuildingTitles({
+  const bld=await check("BUILDING_HUB",()=>fetchBuildingTitles({
     env:process.env,
     sigunguCd:"11590",
     bjdongCd:"10200",
@@ -29,11 +41,14 @@ async function main(){
     pageNo:1,
     numOfRows:10,
     observedAt:new Date().toISOString()
-  });
-  console.log("BUILDING_HUB_OK count=",bld.length,
-    "sample=",JSON.stringify(safeSample(bld[0],["building_name","plat_plc","main_purpose","mgm_bldrgst_pk"])));
+  }));
+  if(bld.ok){
+    console.log("BUILDING_SAMPLE=",JSON.stringify(safeSample(bld.rows[0],["building_name","plat_plc","main_purpose","mgm_bldrgst_pk"])));
+  }
 
-  if(!Array.isArray(rtms)||!Array.isArray(bld)) throw new Error("Unexpected adapter output");
+  if(!rtms.ok||!bld.ok){
+    throw new Error("One or more live providers failed; see masked provider diagnostics above");
+  }
 }
 main().catch(err=>{
   console.error("LIVE_DATA_SMOKE_FAILED:",err?.message||String(err));
