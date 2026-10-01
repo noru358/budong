@@ -15,7 +15,7 @@
 
 설계가 변경되면 별도 handoff를 계속 늘리기보다 위 정본의 CURRENT/NEXT를 갱신한다.
 
-## 현재 상태 — 2026-09-29
+## 현재 상태 — 2026-10-02
 
 ### GATE 0 — 완료
 - V1 Prototype Contract 확정
@@ -58,25 +58,25 @@
 - unknown은 0이 아니라 `NEEDS_REVIEW`.
 - API 키는 Git에 커밋하지 않는다.
 
-## 지금 막힌 외부 의존성
+## 외부 의존성 상태
 
-공공데이터포털 활용신청은 사용자 확인 기준 완료됐다. 실제 RTMS / Building HUB 호출을 위해서는 발급된 키를 로컬 `.env` 또는 GitHub Actions Repository Secret의 **`DATA_GO_KR_SERVICE_KEY`** 로만 주입해야 한다.
-
-GitHub 방식에서는 공공데이터포털의 **Decoding 인증키**를 `DATA_GO_KR_SERVICE_KEY`로 저장한 뒤, `Actions → Live Data Smoke → Run workflow`를 실행한다. 이 수동 smoke workflow는 실거래가 + Building HUB를 실제 호출하며 키를 출력하거나 artifact에 저장하지 않는다.
-
-키를 채팅이나 저장소 파일에 붙이지 않는다.
+- 공공데이터포털 활용신청 완료
+- GitHub Repository Secret `DATA_GO_KR_SERVICE_KEY` 주입 완료
+- **Live Data Smoke PASS (2026-10-02)**
+  - RTMS 연립·다세대 실제 호출 성공
+  - Building HUB 실제 호출 성공
+- 초기 실패 원인은 API 자체가 아니라 Secret에 포털 복사 블록 전체가 들어가 있었던 것. Adapter가 블록에서 실제 key token을 안전하게 추출하도록 보정함.
+- 키는 로그/소스/README에 노출하지 않음.
 
 ## 다음
 
 ### 사용자
-1. `DATA_GO_KR_SERVICE_KEY`를 GitHub Repository Secret으로 안전하게 주입
-2. `Actions → Live Data Smoke → Run workflow` 1회 실행
-3. 결과 성공/실패만 알려주기
+- **현재 필수 외부 액션 없음.**
 
 ### AI / Codex
-1. 정보몽땅 source-specific row parser
-2. 서울시 고시 parser + 25개 자치구 notice adapter registry
-3. 남은 deep target 공식 원문 확정
-4. Live Data Smoke 성공 후 RTMS / Building HUB를 최소 5개 deep target에 연결
+1. RTMS / Building HUB를 최소 5개 deep target 실제 데이터에 연결
+2. 정보몽땅 source-specific row parser
+3. 서울시 고시 parser + 25개 자치구 notice adapter registry
+4. 남은 deep target 공식 원문 확정
 5. 서울플랜+ SHP 실제 파싱 → 개인 V1 `ADMIN_CANDIDATE` 지도
 6. GATE 2 QA → 실제 매물 dogfood(GATE 3)
