@@ -38,13 +38,41 @@ export function normalizeServiceKey(value){
   }
   return s;
 }
+export function extractServiceKeyCandidates(value){
+  const raw=String(value??"").trim();
+  if(!raw) throw new Error("Missing DATA_GO_KR_SERVICE_KEY");
+
+  const pieces=[];
+  // A normal secret is one token. If the user pasted a portal panel/block,
+  // do not treat the whole whitespace-containing block as a key.
+  if(!/\s/.test(raw)) pieces.push(raw);
+
+  // data.go.kr general keys are long opaque URL/base64-like tokens.
+  // Extract only token-shaped candidates; never persist or log their values.
+  for(const match of raw.matchAll(/[A-Za-z0-9+%/_=.-]{40,260}/g)){
+    pieces.push(match[0]);
+  }
+
+  const out=[];
+  const seen=new Set();
+  for(const piece of pieces){
+    const cleaned=piece.replace(/^[\"']|[\"',;]$/g,"");
+    let key;
+    try{key=normalizeServiceKey(cleaned);}catch{continue}
+    if(key.length<40||key.length>220) continue;
+    if(/^https?\/\//i.test(key)) continue;
+    if(!seen.has(key)){seen.add(key);out.push(key);}
+  }
+  if(!out.length) throw new Error("No service-key-shaped token found in DATA_GO_KR_SERVICE_KEY");
+  return out;
+}
 function keyFrom(env){
-  return normalizeServiceKey(requireSecret(env,"DATA_GO_KR_SERVICE_KEY"));
+  return extractServiceKeyCandidates(requireSecret(env,"DATA_GO_KR_SERVICE_KEY"))[0];
 }
 
-export function buildRtmsUrl({env=process.env,endpoint=ENDPOINTS.RTMS_MULTIFAMILY_SALE,lawdCd,dealYmd,pageNo=1,numOfRows=1000}){
+export function buildRtmsUrl({env=process.env,serviceKey=null,endpoint=ENDPOINTS.RTMS_MULTIFAMILY_SALE,lawdCd,dealYmd,pageNo=1,numOfRows=1000}){
   const url=new URL(endpoint);
-  url.searchParams.set("serviceKey",keyFrom(env));
+  url.searchParams.set("serviceKey",serviceKey?normalizeServiceKey(serviceKey):keyFrom(env));
   url.searchParams.set("LAWD_CD",checkCode(lawdCd,5,"LAWD_CD"));
   url.searchParams.set("DEAL_YMD",checkCode(dealYmd,6,"DEAL_YMD"));
   url.searchParams.set("pageNo",String(positiveInt(pageNo,"pageNo")));
@@ -53,11 +81,11 @@ export function buildRtmsUrl({env=process.env,endpoint=ENDPOINTS.RTMS_MULTIFAMIL
 }
 
 export function buildBuildingHubUrl({
-  env=process.env,endpoint=ENDPOINTS.BUILDING_HUB_TITLE,
+  env=process.env,serviceKey=null,endpoint=ENDPOINTS.BUILDING_HUB_TITLE,
   sigunguCd,bjdongCd,platGbCd="0",bun,ji="0000",pageNo=1,numOfRows=100
 }){
   const url=new URL(endpoint);
-  url.searchParams.set("serviceKey",keyFrom(env));
+  url.searchParams.set("serviceKey",serviceKey?normalizeServiceKey(serviceKey):keyFrom(env));
   url.searchParams.set("sigunguCd",checkCode(sigunguCd,5,"sigunguCd"));
   url.searchParams.set("bjdongCd",checkCode(bjdongCd,5,"bjdongCd"));
   url.searchParams.set("platGbCd",String(platGbCd));
@@ -160,11 +188,16 @@ export function normalizeBuildingTitleItem(raw,{observedAt=new Date().toISOStrin
   return out;
 }
 
-function sanitizeProviderText(text,secret){
+function sanitizeProviderText(text,secrets){
   let out=String(text??"").slice(0,2500);
-  const decoded=normalizeServiceKey(secret);
-  const variants=[secret,decoded,encodeURIComponent(decoded)].filter(Boolean);
-  for(const v of variants) out=out.split(v).join("***");
+  const list=Array.isArray(secrets)?secrets:[secrets];
+  const variants=[];
+  for(const secret of list.filter(Boolean)){
+    let decoded;
+    try{decoded=normalizeServiceKey(secret);}catch{decoded=String(secret)}
+    variants.push(String(secret),decoded,encodeURIComponent(decoded));
+  }
+  for(const v of variants.filter(Boolean)) out=out.split(v).join("***");
   out=out.replace(/(serviceKey=)[^&\s<>"']+/gi,"$1***");
   return out.replace(/\s+/g," ").trim();
 }
@@ -184,18 +217,40 @@ function providerErrorSummary(text){
   return compact || "empty response body";
 }
 
-async function throwProviderHttpError(label,res,secret){
-  let body="";
-  try{body=await res.text();}catch{}
-  body=sanitizeProviderText(body,secret);
-  throw new Error(label+" HTTP "+res.status+": "+providerErrorSummary(body));
+function keyRejectedByGateway(status,body){
+  if(![401,403].includes(Number(status))) return false;
+  const s=String(body??"");
+  return /SERVICE_KEY_IS_NOT_REGISTERED_ERROR|등록되지 않은 서비스키|returnReasonCode>30<|returnReasonCode["']?\s*[:=]\s*["']?30/i.test(s);
+}
+
+function providerError(label,status,body,secrets){
+  const safe=sanitizeProviderText(body,secrets);
+  return new Error(label+" HTTP "+status+": "+providerErrorSummary(safe));
+}
+
+async function fetchWithServiceKeyCandidates({env,fetchImpl,label,makeUrl,headers}){
+  const raw=requireSecret(env,"DATA_GO_KR_SERVICE_KEY");
+  const keys=extractServiceKeyCandidates(raw);
+  let last=null;
+  for(let i=0;i<keys.length;i+=1){
+    const url=makeUrl(keys[i]);
+    const res=await fetchImpl(url,{headers});
+    if(res.ok) return {res,key_index:i,candidate_count:keys.length};
+    let body="";
+    try{body=await res.text();}catch{}
+    last={status:res.status,body};
+    if(keyRejectedByGateway(res.status,body) && i<keys.length-1) continue;
+    throw providerError(label,res.status,body,[raw,...keys]);
+  }
+  throw providerError(label,last?.status??0,last?.body??"No response",[raw,...keys]);
 }
 
 export async function fetchRtmsTrades({env=process.env,fetchImpl=fetch,...args}){
-  const secret=keyFrom(env);
-  const url=buildRtmsUrl({env,...args});
-  const res=await fetchImpl(url,{headers:{accept:"application/xml,text/xml;q=0.9,*/*;q=0.1"}});
-  if(!res.ok) await throwProviderHttpError("RTMS",res,secret);
+  const {res}=await fetchWithServiceKeyCandidates({
+    env,fetchImpl,label:"RTMS",
+    makeUrl:key=>buildRtmsUrl({env,serviceKey:key,...args}),
+    headers:{accept:"application/xml,text/xml;q=0.9,*/*;q=0.1"}
+  });
   const xml=await res.text();
   return parseFlatXmlItems(xml).map(raw=>normalizeRtmsTradeItem(raw,{
     sourceId:args.sourceId||"MOLIT_RTMS_MULTIFAMILY_SALE",
@@ -204,10 +259,11 @@ export async function fetchRtmsTrades({env=process.env,fetchImpl=fetch,...args})
 }
 
 export async function fetchBuildingTitles({env=process.env,fetchImpl=fetch,...args}){
-  const secret=keyFrom(env);
-  const url=buildBuildingHubUrl({env,...args,endpoint:args.endpoint||ENDPOINTS.BUILDING_HUB_TITLE});
-  const res=await fetchImpl(url,{headers:{accept:"application/json,application/xml;q=0.9,*/*;q=0.1"}});
-  if(!res.ok) await throwProviderHttpError("Building HUB",res,secret);
+  const {res}=await fetchWithServiceKeyCandidates({
+    env,fetchImpl,label:"Building HUB",
+    makeUrl:key=>buildBuildingHubUrl({env,serviceKey:key,...args,endpoint:args.endpoint||ENDPOINTS.BUILDING_HUB_TITLE}),
+    headers:{accept:"application/json,application/xml;q=0.9,*/*;q=0.1"}
+  });
   const contentType=String(res.headers?.get?.("content-type")||"").toLowerCase();
   if(contentType.includes("json")){
     const json=await res.json();
@@ -218,6 +274,5 @@ export async function fetchBuildingTitles({env=process.env,fetchImpl=fetch,...ar
     const json=JSON.parse(text);
     return extractBuildingHubItems(json).map(raw=>normalizeBuildingTitleItem(raw,{observedAt:args.observedAt||new Date().toISOString()}));
   }
-  // Building HUB can ignore _type=json on some gateway paths; parse flat XML items safely.
   return parseFlatXmlItems(text).map(raw=>normalizeBuildingTitleItem(raw,{observedAt:args.observedAt||new Date().toISOString()}));
 }
