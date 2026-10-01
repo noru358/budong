@@ -1,4 +1,4 @@
-import {fetchRtmsTrades,fetchBuildingTitles,extractServiceKeyCandidates} from "../src/adapters/data_go_kr.mjs";
+import {fetchRtmsTrades,fetchBuildingTitles} from "../src/adapters/data_go_kr.mjs";
 
 function safeSample(row,fields){
   if(!row)return null;
@@ -18,23 +18,7 @@ async function check(name,fn){
 
 async function main(){
   if(!process.env.DATA_GO_KR_SERVICE_KEY) throw new Error("DATA_GO_KR_SERVICE_KEY is not configured");
-  const rawKey=String(process.env.DATA_GO_KR_SERVICE_KEY||"");
-  const trimmed=rawKey.trim();
-  const looksEncoded=/%[0-9A-Fa-f]{2}/.test(trimmed);
-  const hasInternalWhitespace=/\s/.test(trimmed);
-  const wrappedInQuotes=(trimmed.startsWith('"')&&trimmed.endsWith('"'))||(trimmed.startsWith("'")&&trimmed.endsWith("'"));
-  const looksMasked=/\*{3,}|\.\.\./.test(trimmed);
   console.log("DATA_GO_KR_SERVICE_KEY_PRESENT=yes");
-  let candidates=[];
-  try{candidates=extractServiceKeyCandidates(rawKey);}catch{}
-  console.log("KEY_DIAGNOSTIC raw_length="+rawKey.length+
-    " trimmed_length="+trimmed.length+
-    " encoded_escapes="+looksEncoded+
-    " internal_whitespace="+hasInternalWhitespace+
-    " wrapped_quotes="+wrappedInQuotes+
-    " looks_masked="+looksMasked+
-    " candidate_count="+candidates.length+
-    " candidate_lengths="+candidates.map(x=>x.length).join(",")); // never log value/hash
 
   const rtms=await check("RTMS_MULTIFAMILY_SALE",()=>fetchRtmsTrades({
     env:process.env,
