@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  ENDPOINTS,buildRtmsUrl,buildBuildingHubUrl,parseFlatXmlItems,normalizeServiceKey,
+  ENDPOINTS,buildRtmsUrl,buildBuildingHubUrl,parseFlatXmlItems,normalizeServiceKey,extractServiceKeyCandidates,
   normalizeRtmsTradeItem,extractBuildingHubItems,normalizeBuildingTitleItem
 } from "../src/adapters/data_go_kr.mjs";
 
@@ -59,4 +59,14 @@ test("service key accepts decoded or URL-encoded portal form without double enco
   assert.equal(a.searchParams.get("serviceKey"),decoded);
   assert.equal(b.searchParams.get("serviceKey"),decoded);
   assert.ok(!b.toString().includes("%252B"));
+});
+
+test("pasted portal block yields service-key candidates without using whole block",()=>{
+  const encoding="abcDEF0123456789abcDEF0123456789abcDEF0123456789%2B%2F%3D%3D";
+  const decoding="abcDEF0123456789abcDEF0123456789abcDEF0123456789+/==";
+  const block="일반 인증키 (Encoding)\n"+encoding+"\n일반 인증키 (Decoding)\n"+decoding+"\n복사";
+  const xs=extractServiceKeyCandidates(block);
+  assert.ok(xs.length>=1);
+  assert.ok(xs.every(x=>!x.includes("일반 인증키")));
+  assert.ok(xs.includes(normalizeServiceKey(encoding)));
 });
