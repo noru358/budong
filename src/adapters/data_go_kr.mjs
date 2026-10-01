@@ -42,13 +42,13 @@ export function extractServiceKeyCandidates(value){
   const raw=String(value??"").trim();
   if(!raw) throw new Error("Missing DATA_GO_KR_SERVICE_KEY");
 
-  const pieces=[];
-  // A normal secret is one token. If the user pasted a portal panel/block,
-  // do not treat the whole whitespace-containing block as a key.
-  if(!/\s/.test(raw)) pieces.push(raw);
+  // A normal single-token secret should work as-is, regardless of length.
+  // Length filtering is only for pasted multi-line portal blocks.
+  if(!/\s/.test(raw)) return [normalizeServiceKey(raw)];
 
+  const pieces=[];
   // data.go.kr general keys are long opaque URL/base64-like tokens.
-  // Extract only token-shaped candidates; never persist or log their values.
+  // Extract only token-shaped candidates from pasted blocks; never persist/log values.
   for(const match of raw.matchAll(/[A-Za-z0-9+%/_=.-]{40,260}/g)){
     pieces.push(match[0]);
   }
