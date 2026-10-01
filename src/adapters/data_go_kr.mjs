@@ -23,7 +23,24 @@ function positiveInt(value,name){
   if(!Number.isInteger(n)||n<1) throw new Error(name+" must be a positive integer");
   return n;
 }
-function keyFrom(env){return requireSecret(env,"DATA_GO_KR_SERVICE_KEY")}
+
+export function normalizeServiceKey(value){
+  let s=String(value??"").trim();
+  if(!s) throw new Error("Missing DATA_GO_KR_SERVICE_KEY");
+  // data.go.kr shows both Encoding and Decoding keys. Accept either, but always
+  // hand URLSearchParams the decoded form so the request is encoded exactly once.
+  // This prevents %2B/%2F/%3D from becoming %252B/%252F/%253D.
+  if(/%(?:2B|2F|3D|25)/i.test(s)){
+    try{
+      const once=decodeURIComponent(s);
+      if(once) s=once;
+    }catch{}
+  }
+  return s;
+}
+function keyFrom(env){
+  return normalizeServiceKey(requireSecret(env,"DATA_GO_KR_SERVICE_KEY"));
+}
 
 export function buildRtmsUrl({env=process.env,endpoint=ENDPOINTS.RTMS_MULTIFAMILY_SALE,lawdCd,dealYmd,pageNo=1,numOfRows=1000}){
   const url=new URL(endpoint);
@@ -143,10 +160,42 @@ export function normalizeBuildingTitleItem(raw,{observedAt=new Date().toISOStrin
   return out;
 }
 
+function sanitizeProviderText(text,secret){
+  let out=String(text??"").slice(0,2500);
+  const decoded=normalizeServiceKey(secret);
+  const variants=[secret,decoded,encodeURIComponent(decoded)].filter(Boolean);
+  for(const v of variants) out=out.split(v).join("***");
+  out=out.replace(/(serviceKey=)[^&\s<>"']+/gi,"$1***");
+  return out.replace(/\s+/g," ").trim();
+}
+
+function providerErrorSummary(text){
+  const s=String(text??"");
+  const fields=["errMsg","returnAuthMsg","returnReasonCode","resultCode","resultMsg"];
+  const found=[];
+  for(const f of fields){
+    const xml=(s.match(new RegExp("<"+f+">([\\s\\S]*?)<\\/"+f+">","i"))||[])[1];
+    const json=(s.match(new RegExp('"'+f+'"\\s*:\\s*"([^"]+)"',"i"))||[])[1];
+    const value=decodeXml(xml??json??"");
+    if(value) found.push(f+"="+value);
+  }
+  if(found.length) return found.join(", ");
+  const compact=sanitizeProviderText(s,"").slice(0,500);
+  return compact || "empty response body";
+}
+
+async function throwProviderHttpError(label,res,secret){
+  let body="";
+  try{body=await res.text();}catch{}
+  body=sanitizeProviderText(body,secret);
+  throw new Error(label+" HTTP "+res.status+": "+providerErrorSummary(body));
+}
+
 export async function fetchRtmsTrades({env=process.env,fetchImpl=fetch,...args}){
+  const secret=keyFrom(env);
   const url=buildRtmsUrl({env,...args});
   const res=await fetchImpl(url,{headers:{accept:"application/xml,text/xml;q=0.9,*/*;q=0.1"}});
-  if(!res.ok)throw new Error("RTMS HTTP "+res.status);
+  if(!res.ok) await throwProviderHttpError("RTMS",res,secret);
   const xml=await res.text();
   return parseFlatXmlItems(xml).map(raw=>normalizeRtmsTradeItem(raw,{
     sourceId:args.sourceId||"MOLIT_RTMS_MULTIFAMILY_SALE",
@@ -155,9 +204,20 @@ export async function fetchRtmsTrades({env=process.env,fetchImpl=fetch,...args})
 }
 
 export async function fetchBuildingTitles({env=process.env,fetchImpl=fetch,...args}){
+  const secret=keyFrom(env);
   const url=buildBuildingHubUrl({env,...args,endpoint:args.endpoint||ENDPOINTS.BUILDING_HUB_TITLE});
-  const res=await fetchImpl(url,{headers:{accept:"application/json"}});
-  if(!res.ok)throw new Error("Building HUB HTTP "+res.status);
-  const json=await res.json();
-  return extractBuildingHubItems(json).map(raw=>normalizeBuildingTitleItem(raw,{observedAt:args.observedAt||new Date().toISOString()}));
+  const res=await fetchImpl(url,{headers:{accept:"application/json,application/xml;q=0.9,*/*;q=0.1"}});
+  if(!res.ok) await throwProviderHttpError("Building HUB",res,secret);
+  const contentType=String(res.headers?.get?.("content-type")||"").toLowerCase();
+  if(contentType.includes("json")){
+    const json=await res.json();
+    return extractBuildingHubItems(json).map(raw=>normalizeBuildingTitleItem(raw,{observedAt:args.observedAt||new Date().toISOString()}));
+  }
+  const text=await res.text();
+  if(text.trim().startsWith("{")){
+    const json=JSON.parse(text);
+    return extractBuildingHubItems(json).map(raw=>normalizeBuildingTitleItem(raw,{observedAt:args.observedAt||new Date().toISOString()}));
+  }
+  // Building HUB can ignore _type=json on some gateway paths; parse flat XML items safely.
+  return parseFlatXmlItems(text).map(raw=>normalizeBuildingTitleItem(raw,{observedAt:args.observedAt||new Date().toISOString()}));
 }
