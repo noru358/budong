@@ -1,6 +1,6 @@
 # PROJECT DASHBOARD — budong
 
-기준일: **2026-09-29**  
+기준일: **2026-10-02**  
 정본: `REDEVELOPMENT_HANDOFF_v0.2_20260928.md` + `V1_PROTOTYPE_CONTRACT.md`
 
 ## 한 줄 상태
@@ -50,12 +50,12 @@
 ### QA
 - unit/integration tests
 - GitHub Actions CI
-- live-data smoke workflow
+- **live-data smoke PASS**
 - scheduled update-watch workflow
 
 ## GATE 2 Remaining
 
-- [ ] DATA_GO_KR_SERVICE_KEY Secret 주입 + Live Data Smoke 성공
+- [x] DATA_GO_KR_SERVICE_KEY Secret 주입 + Live Data Smoke 성공
 - [ ] 최소 5개 deep target RTMS 실제 거래 연결
 - [ ] 최소 5개 deep target Building HUB 연결
 - [ ] 남은 deep target 공식 고시 원문 확정
@@ -68,19 +68,9 @@
 
 ## USER ACTION
 
-현재 사용자가 직접 해야 하는 필수 외부 액션은 **1개**.
+**현재 필수 외부 액션 없음.**
 
-`GitHub → noru358/budong → Settings → Secrets and variables → Actions`
-
-새 Repository Secret:
-- Name: `DATA_GO_KR_SERVICE_KEY`
-- Value: 공공데이터포털 **Decoding 인증키**
-
-그 다음:
-
-`Actions → Live Data Smoke → Run workflow`
-
-성공/실패 여부만 ChatGPT에 알려준다. 키 자체는 전달하지 않는다.
+공공데이터포털 API Secret 주입과 Live Data Smoke는 완료됐다. 추가 계정/API 신청이 필요한 시점이 생길 때만 사용자 액션을 다시 연다.
 
 ## AI / CODEX NEXT
 
@@ -92,7 +82,7 @@
 5. deep target 원문 보강
 6. 서울플랜+ SHP parser
 7. real data UI provenance
-8. key 확인 후 RTMS/Building HUB live integration
+8. RTMS/Building HUB를 5개 deep target live integration
 9. GATE 2 QA
 10. GATE 3 actual listing dogfood
 
