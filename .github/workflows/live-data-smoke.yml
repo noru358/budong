@@ -2,12 +2,6 @@ name: Live Data Smoke
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "src/adapters/data_go_kr.mjs"
-      - "scripts/live_data_smoke.mjs"
-      - ".github/workflows/live-data-smoke.yml"
 
 permissions:
   contents: read
