@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  ENDPOINTS,buildRtmsUrl,buildBuildingHubUrl,parseFlatXmlItems,
+  ENDPOINTS,buildRtmsUrl,buildBuildingHubUrl,parseFlatXmlItems,normalizeServiceKey,
   normalizeRtmsTradeItem,extractBuildingHubItems,normalizeBuildingTitleItem
 } from "../src/adapters/data_go_kr.mjs";
 
@@ -47,4 +47,16 @@ test("Building HUB title normalizer keeps PK and does not infer unit",()=>{
   assert.equal(n.mgm_bldrgst_pk,"PK1");
   assert.equal(n.total_area_m2,123.4);
   assert.equal("ho_name" in n,false);
+});
+
+test("service key accepts decoded or URL-encoded portal form without double encoding",()=>{
+  const decoded="abc+/==";
+  const encoded="abc%2B%2F%3D%3D";
+  assert.equal(normalizeServiceKey(decoded),decoded);
+  assert.equal(normalizeServiceKey(encoded),decoded);
+  const a=buildRtmsUrl({env:{DATA_GO_KR_SERVICE_KEY:decoded},lawdCd:"11590",dealYmd:"202609"});
+  const b=buildRtmsUrl({env:{DATA_GO_KR_SERVICE_KEY:encoded},lawdCd:"11590",dealYmd:"202609"});
+  assert.equal(a.searchParams.get("serviceKey"),decoded);
+  assert.equal(b.searchParams.get("serviceKey"),decoded);
+  assert.ok(!b.toString().includes("%252B"));
 });
