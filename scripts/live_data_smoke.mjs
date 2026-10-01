@@ -18,7 +18,19 @@ async function check(name,fn){
 
 async function main(){
   if(!process.env.DATA_GO_KR_SERVICE_KEY) throw new Error("DATA_GO_KR_SERVICE_KEY is not configured");
-  console.log("DATA_GO_KR_SERVICE_KEY_PRESENT=yes"); // never log value/length/hash
+  const rawKey=String(process.env.DATA_GO_KR_SERVICE_KEY||"");
+  const trimmed=rawKey.trim();
+  const looksEncoded=/%[0-9A-Fa-f]{2}/.test(trimmed);
+  const hasInternalWhitespace=/\s/.test(trimmed);
+  const wrappedInQuotes=(trimmed.startsWith('"')&&trimmed.endsWith('"'))||(trimmed.startsWith("'")&&trimmed.endsWith("'"));
+  const looksMasked=/\*{3,}|\.\.\./.test(trimmed);
+  console.log("DATA_GO_KR_SERVICE_KEY_PRESENT=yes");
+  console.log("KEY_DIAGNOSTIC raw_length="+rawKey.length+
+    " trimmed_length="+trimmed.length+
+    " encoded_escapes="+looksEncoded+
+    " internal_whitespace="+hasInternalWhitespace+
+    " wrapped_quotes="+wrappedInQuotes+
+    " looks_masked="+looksMasked); // never log value/hash
 
   const rtms=await check("RTMS_MULTIFAMILY_SALE",()=>fetchRtmsTrades({
     env:process.env,
