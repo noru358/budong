@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   ENDPOINTS,buildRtmsUrl,buildBuildingHubUrl,parseFlatXmlItems,
   normalizeRtmsTradeItem,extractBuildingHubItems,normalizeBuildingTitleItem,
-  fetchRtmsTrades,fetchBuildingTitles,normalizeServiceKey,sanitizeApiError
+  fetchRtmsTrades,fetchBuildingTitles,normalizeServiceKey,sanitizeApiError,extractServiceKeyCandidates
 } from "../src/adapters/data_go_kr.mjs";
 
 const env={DATA_GO_KR_SERVICE_KEY:"TEST_ONLY_KEY"};
@@ -171,4 +171,80 @@ test("HTTP 400 preserves provider parameter diagnosis for XML and JSON gateway e
     });
   }
   await assert.rejects(fetchBuildingTitles({...buildingArgs,fetchImpl:async()=>reply(json)}),error=>error.providerCode==="10");
+});
+
+test("service key accepts decoded or URL-encoded portal form without double encoding",()=>{
+  const decoded="abc+/==";
+  const encoded="abc%2B%2F%3D%3D";
+  assert.equal(normalizeServiceKey(decoded),decoded);
+  assert.equal(normalizeServiceKey(encoded),decoded);
+  const a=buildRtmsUrl({env:{DATA_GO_KR_SERVICE_KEY:decoded},lawdCd:"11590",dealYmd:"202609"});
+  const b=buildRtmsUrl({env:{DATA_GO_KR_SERVICE_KEY:encoded},lawdCd:"11590",dealYmd:"202609"});
+  assert.equal(a.searchParams.get("serviceKey"),decoded);
+  assert.equal(b.searchParams.get("serviceKey"),decoded);
+  assert.ok(!b.toString().includes("%252B"));
+});
+
+test("pasted portal block yields service-key candidates without using whole block",()=>{
+  const encoding="abcDEF0123456789abcDEF0123456789abcDEF0123456789%2B%2F%3D%3D";
+  const decoding="abcDEF0123456789abcDEF0123456789abcDEF0123456789+/==";
+  const block="일반 인증키 (Encoding)\n"+encoding+"\n일반 인증키 (Decoding)\n"+decoding+"\n복사";
+  const xs=extractServiceKeyCandidates(block);
+  assert.ok(xs.length>=1);
+  assert.ok(xs.every(x=>!x.includes("일반 인증키")));
+  assert.ok(xs.includes(normalizeServiceKey(encoding)));
+});
+
+const candidateA="FAKE_FIRST_CANDIDATE_"+"a".repeat(40);
+const candidateB="FAKE_SECOND_CANDIDATE_"+"b".repeat(40);
+const candidateEnv={DATA_GO_KR_SERVICE_KEY:`Encoding\n${candidateA}\nDecoding\n${candidateB}`};
+
+test("single-token service keys are preserved regardless of length",()=>{
+  assert.deepEqual(extractServiceKeyCandidates("TEST_ONLY_KEY"),["TEST_ONLY_KEY"]);
+});
+
+test("RTMS retries a second candidate only after HTTP authentication rejection",async()=>{
+  const seen=[];
+  const rows=await fetchRtmsTrades({...rtmsArgs,env:candidateEnv,fetchImpl:async url=>{
+    seen.push(url.searchParams.get("serviceKey"));
+    return seen.length===1?{ok:false,status:403,text:async()=>authXml}:reply(xmlEmpty);
+  }});
+  assert.deepEqual(seen,[candidateA,candidateB]);
+  assert.deepEqual(rows,[]);
+});
+
+test("Building HUB preserves candidate fallback and strict JSON parsing",async()=>{
+  const seen=[];
+  const rows=await fetchBuildingTitles({...buildingArgs,env:candidateEnv,fetchImpl:async url=>{
+    seen.push(url.searchParams.get("serviceKey"));
+    return seen.length===1?{ok:false,status:401,text:async()=>authXml}:reply(JSON.stringify({response:{header:{resultCode:"00"},body:{items:{},totalCount:0}}}));
+  }});
+  assert.deepEqual(seen,[candidateA,candidateB]);
+  assert.deepEqual(rows,[]);
+});
+
+test("parameter errors and HTTP 200 provider errors do not retry another key",async()=>{
+  for(const response of [
+    {ok:false,status:400,text:async()=>authXml.replace("<returnReasonCode>30","<returnReasonCode>10")},
+    reply(authXml)
+  ]){
+    let calls=0;
+    await assert.rejects(fetchRtmsTrades({...rtmsArgs,env:candidateEnv,fetchImpl:async()=>{calls++;return response;}}));
+    assert.equal(calls,1);
+  }
+});
+
+test("errors redact every candidate from a pasted portal block",async()=>{
+  await assert.rejects(fetchRtmsTrades({...rtmsArgs,env:candidateEnv,fetchImpl:async()=>{
+    throw new Error(`network failed ${candidateA} ${candidateB}`);
+  }}),error=>!error.message.includes(candidateA)&&!error.message.includes(candidateB));
+});
+
+test("exhausted authentication candidates preserve provider diagnostics",async()=>{
+  let calls=0;
+  await assert.rejects(fetchRtmsTrades({...rtmsArgs,env:candidateEnv,fetchImpl:async()=>{
+    calls++;
+    return {ok:false,status:403,text:async()=>authXml};
+  }}),error=>error.providerCode==="30"&&error.httpStatus===403);
+  assert.equal(calls,2);
 });

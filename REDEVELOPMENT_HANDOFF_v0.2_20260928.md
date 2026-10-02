@@ -574,11 +574,11 @@ flowchart TD
 
 현재 저장은 브라우저 localStorage이며 DB schema는 아직 런타임에 연결하지 않았다. 가상 계산 데모는 별도 화면으로 명시한다. 실제 사용자는 입력한 물건을 저장하고 선택 비교할 수 있다. 미래 시나리오는 사용자 가정이며 자동 투자추천·가격 추정·법률판단을 하지 않는다.
 
-Node 22.23.3 자동 테스트117개 전부 통과. 브라우저 검색→근거재확인 표시→입력→저장→계산→비교→복원→삭제·모바일 검증도 통과. PROJECT_DASHBOARD.md 및 docs/VALIDATION_V1.md 참조.
+원본 백업의 Node22 자동 테스트117개 통과 기록을 보존했다. 2026-10-02 Mac에서 백업 복구·원격 API 수정 통합 후 Node24.18.0으로 전체125개 테스트가 전부 통과했다. Mac Chrome headless의 검색→근거 표시→입력→계산→저장→복원→비교→JSON 내보내기→미확인값 유지→모바일390/320px→지도 가드→삭제도 PASS, 페이지 오류0이었다. 실제 API 키를 사용하는 Mac live 호출은 이 복구 작업에서 실행하지 않았다. PROJECT_DASHBOARD.md 및 docs/VALIDATION_V1.md 참조.
 
-사용자가 맥에서 Codex와 공공데이터포털 목록을 열었으나 이 대화의 실행도구는 Linux클라우드이며 맥 터미널/화면 연결 및 node_repl 제공이 없다. 직접 조작으로 확인하지 않았다. 최신 실행 ZIP은 /workspace/budong-personal-v1.zip, Mac 실행 안내는 docs/MAC_START.md. ZIP을 별도 폴더에 풀어 전체 브라우저 동선을 검증했다. 맥에서 Node22/24로 npm run serve를 실행한 뒤 localhost4173의 /web/에 접속한다. 사용자 맥에서의 실행·API·브라우저는 아직 미검증이다.
+기존 클라우드 실행 서버 장애로 미업로드됐던 앱을 Mac에 다운로드된 budong-personal-v1.zip(55파일)에서 복구했다. 기존 원격 main984e0e5와 병합하여 업로드하며, 다른 세션은 최신 main을 받아 docs/MAC_START.md에 따라 Node22/24로 npm run serve를 실행한다. 원문 수집 baseline·기존 ZIP·스크린샷은 저장소 밖 생성물이며 자동 이전되지 않는다.
 
-API 실제 검증: 사용자 제공 키는 임시 프로세스에만 주입해 호출했다. 클라우드 RTMS·Building HUB는 HTTP400 / code10 INVALID_REQUEST_PARAMETER_ERROR로 실패. 사용자 포털의 종로구11110/202401 미리보기는 000/OK로 성공(전체20건/반환10건)했다. 키 무효로 단정하지 않으며 성공 URL과 클라우드 전송을 대조해야 한다. 프록시 전송 적용 후 공식 포털 Swagger는 HTTP200이며 현재 주소·필수 파라미터와 일치한다. 두 서비스 필수 파라미터만으로도 code10이다. Building v2 대조 경로는 code12 서비스없음이므로 기본 endpoint를 바꾸지 않았다. 임시 키를 저장소·지침·로그에 저장하지 않았다.
+API 통합: 원격 main984e0e5까지의 API 수정·Live Data Smoke PASS 기록(2026-10-02)을 보존했다. Secret에 포털 복사 블록이 들어간 문제는 후보 토큰 추출·인증 거절 시 다음 후보 재시도로 해결됐으며 공백 없는 단일 토큰은 길이와 무관하게 보존한다. 이 세션의 엄격XML/JSON·HTTP/제공기관 코드·타임아웃·키 제거·독립 스모크 조건도 유지한다. 현재 클라우드의 임시 단일 키 HTTP400/code10·사용자 포털000/OK는 별도 환경의 과거 진단이다. 새 세션에서는 기존 Secret으로 smoke를 먼저 재확인하고 실제5구역 연결을 진행한다. API 활용신청이나 Actions 키 재등록을 다시 요구하지 않는다. 실제 키는 커밋하지 않았다.
 
 정보몽땅25구/1,184개 사업장/26페이지와 경계 catalog 실제 수집·상태 무결성 검증 완료. 최종 필수오류0·최초 baseline 후보0·공식 사실 및 앱 seed 자동변경0. 원문·상태·보고서는 /workspace/.budong-onboarding/update-watch-live-20261002/에 보존했다. 서울플랜+ 202609 경계자료는 공공누리4(상업 이용·변경 금지), 법적 효력 없음. 파일 다운로드 프록시403과 별개로 변환·지도 이용허락이 미확인이라 변환·배포를 진행하지 않는다. 대체 WMS/WFS 카탈로그15058773/15123895는 허용 이용조건 후보지만 실제 정비구역 레이어·좌표계·키 요건은 미확인. 공식 문서 www.vworld.kr을 환경 초안에 추가했으나 현재 프록시 CONNECT403으로 상세 조사 차단. docs/VALIDATION_V1.md 참고.
 
@@ -589,17 +589,19 @@ API 실제 검증: 사용자 제공 키는 임시 프로세스에만 주입해 �
 | 부서 | 다음 작업 |
 |---|---|
 | Legal | 대표5구역 후속 최신고시·첨부 전체·개별 권리 검토, 사업유형·시행방식별 사전 보강 |
-| Data | 포털 성공 요청 URL 대조·live smoke 성공, 동일한5구역 거래·건물 실제 연결, 고시/첨부 adapter·허용 경계 원천 확보 |
+| Data | 새 실행환경의 기존 Secret으로 live smoke 재확인, 동일한5구역 거래·건물 실제 연결, 고시/첨부 adapter·허용 경계 원천 확보 |
 | Finance | 실제 물건 2~3개 검산·가정 검증, 현재 지원하지 않는 중간 대출상환·보증금 반환 모델은 필요가 확인되면 계약 보강 |
 | Search | 검토된 옛 명칭·역/주소 연결, 실제 사용자 검색어 품질 평가 |
 | UX | 검토된 경계 수집 후 지도 연결, 실제 데이터·사용자 입력 결합, 본인 반복사용 동선 보정 |
 | Data/QA 업데이트 | 전수 baseline 다음 주기 변화 관찰·후보 매칭·공식 검토/승인→사실 저장→UI 연결 |
 | PM/QA | 최소5구역 G2 QA, 본인 실제 매물 G3, 소수지인 G4, 경쟁제품 동일 과제 비교 |
 
-사용자: 성공한 포털 요청 URL에서 인증키 값만 제거해 경로·파라미터 제공. 지속 사용을 위한 키는 클라우드 환경 설정에 안전하게 등록하며 GitHub Actions Secret은 별개다. 실제 물건 2~3개 제공은 실사용 검증 때 필요하다. 키 자체를 추가로 채팅에 공유하지 않는다.
+사용자: 현재 API 신청·Actions 키 재등록의 필수 외부 액션은 없다. 다른 환경에서 기존 안전한 키 주입 설정을 재사용하고 실제 미주입이면 해당 환경 설정만 보완한다. 실제 물건2~3개는 실사용 검증 때 필요하다. 키 자체를 추가로 채팅에 공유하지 않는다.
+
+이 세션의 ZIP·원문/수집 baseline·스크린샷은 checkout 밖 생성물로 Git push에 포함되지 않는다. 새 세션의 머신에 없으면 공개 watcher를 재실행해 기준 상태를 만든다. 실행 서버·임시 키는 자동 이전되지 않는다. Node22/24로 npm test 및 npm run serve를 실행하고 docs/MAC_START.md를 따른다.
 
 ---
 
 # 16. 다음 세션 첫 지시문
 
-> `README.md`, `REDEVELOPMENT_HANDOFF_v0.2_20260928.md`, `V1_PROTOTYPE_CONTRACT.md`, `PROJECT_DASHBOARD.md`, `docs/VALIDATION_V1.md`를 읽어. 2026-10-02 부서별 병렬 구현·통합으로 수동입력·저장·비교 개인 V1은 검증했고 G2 실데이터 통합은 진행 중이다. API는 사용자 포털 성공과 클라우드 code10 실패의 요청 URL 대조부터 이어가. `docs/UPDATE_PIPELINE_V1.md`, `config/update_sensors.json`, `src/updater/core.mjs`, `scripts/run_update_watch.mjs`도 읽어. 업데이트는 Sensor→Snapshot→Diff→Candidate→Official Verification→Assertion 원칙을 유지한다. 정보몽땅/서울플랜+ 변화만으로 법적 사실을 OFFICIAL_CONFIRMED로 자동 승격하지 않는다. 사용자가 DATA_GO_KR_SERVICE_KEY를 주입했다면 Live Data Smoke 결과부터 확인하고 실제 5개 deep target 데이터 연결을 진행한다.
+> `README.md`, `REDEVELOPMENT_HANDOFF_v0.2_20260928.md`, `V1_PROTOTYPE_CONTRACT.md`, `PROJECT_DASHBOARD.md`, `docs/VALIDATION_V1.md`를 읽어. 2026-10-02 부서별 병렬 구현·통합으로 수동입력·저장·비교 개인 V1은 검증했고 G2 실데이터 통합은 진행 중이다. 원격 main의 API 스모크 성공·키 보정을 통합한 상태이니 기존 Secret으로 새 환경의 smoke 재확인 후 실제5구역 연결부터 이어가. UX에는 디자인 담당을 함께 배정해. checkout 밖 생성물이 새 머신에 없으면 watcher로 재수집해. `docs/UPDATE_PIPELINE_V1.md`, `config/update_sensors.json`, `src/updater/core.mjs`, `scripts/run_update_watch.mjs`도 읽어. 업데이트는 Sensor→Snapshot→Diff→Candidate→Official Verification→Assertion 원칙을 유지한다. 정보몽땅/서울플랜+ 변화만으로 법적 사실을 OFFICIAL_CONFIRMED로 자동 승격하지 않는다. 사용자가 DATA_GO_KR_SERVICE_KEY를 주입했다면 Live Data Smoke 결과부터 확인하고 실제 5개 deep target 데이터 연결을 진행한다.

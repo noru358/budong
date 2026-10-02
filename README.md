@@ -15,7 +15,7 @@
 - 지도: 검토된 경계 파일이 없어 현재 FAIL-CLOSED. 근거·검토·이용조건을 만족하는 GeoJSON이 연결되면 구역 경계를 표시한다.
 - 업데이트: DAILY/WEEKLY 주기, 실패 판정, 이전 성공 상태·누적 후보 보존, 선택적 원문 보존. 실제 정보몽땅 목록 parser로 서울25구·1,184개 사업장 전수 baseline을 수집했다. 공식 검토 후 사실 반영과 UI 자동 갱신은 미완료.
 
-44개 기본 구역 정보는 **2026-09-28 관찰값**이다. API mock 테스트 통과나 공식확인 라벨 등록이 최신 실데이터 검증을 뜻하지 않는다. 제공된 키로 클라우드에서 호출한 두 서비스는 **HTTP 400 / 제공기관 코드 10 / INVALID_REQUEST_PARAMETER_ERROR**로 실패했다. 공식 포털 문서는 프록시 전송 적용 후 HTTP200으로 확인했고, 현재 API 주소·필수 파라미터가 Swagger와 일치한다. 필수 파라미터만으로도 같은 오류가 난다. 사용자가 포털에서 확인한 종로구 202401 미리보기는 000/OK, 전체 20건 중 10건 반환으로 정상이다. 성공 요청 URL을 대조해 클라우드 오류를 해결해야 한다.
+44개 기본 구역 정보는 **2026-09-28 관찰값**이다. 원격 main의2026-10-02 기록에 따르면 GitHub Actions에서 **RTMS·Building HUB Live Data Smoke가 성공**했다. 포털 복사 블록이 Secret에 들어간 문제를 실제 키 후보 추출·인증 거절 시 후보 재시도로 해결한 upstream 변경을 통합했다. 이 클라우드에서 임시 단일 키로 호출한 HTTP400/code10과 사용자 포털의000/OK는 별도 환경의 과거 진단 기록이다. mock 테스트·접속 성공이 대표5구역의 실제 거래/건물 연결이나 최신 단계 검증을 뜻하지 않는다. 다음 환경에서 주입된 키로 스모크를 재확인하고 프로젝트 연결을 이어간다.
 
 ## 실행
 
@@ -44,9 +44,9 @@ npm run smoke:live -- --deal-ymd 202609
 
 ## 검증
 
-- `npm test`: **117 tests / 117 pass / 0 fail / 0 skipped** (2026-10-02, Node 22.23.3).
+- `npm test`: **125 tests / 125 pass / 0 fail / 0 skipped** (2026-10-02, Mac Node 24.18.0).
 - 서버 실행 후 `npm run test:browser -- --base-url http://127.0.0.1:4173`: 검색·원문 링크·수동 입력·계산·저장·복원·선택 비교·내보내기·미확인값·재방문·모바일·지도 가드·삭제 검증. 클라우드에 공급된 Python Playwright와 `/usr/bin/chromium`을 사용한다.
-- 실제 인증·5구역 연동·경계 수집·공개 배포·경쟁제품 사용성 비교는 미완료다.
+- GitHub Actions 실제 API 성공은 원격 기록에 보존돼 있다. 새 실행환경의 키 재사용·5구역 연동·경계 수집·공개 배포·경쟁제품 사용성 비교는 별도 검증이 필요하다.
 
 저장한 물건은 이 브라우저의 localStorage에 남는다. 브라우저 데이터를 지우면 사라지므로 JSON 내보내기로 보관할 수 있다. 서버 DB·계정 동기화·내보낸 파일의 가져오기는 현재 지원하지 않는다.
 
@@ -64,4 +64,4 @@ node scripts/run_update_watch.mjs --state /workspace/.budong-onboarding/update-w
 - [docs/VALIDATION_V1.md](./docs/VALIDATION_V1.md): 이번 검증 결과·범위·외부 실패 기록.
 - [docs/WORKSTREAMS_V1.md](./docs/WORKSTREAMS_V1.md), [docs/REAL_DATA_PLAN_V1.md](./docs/REAL_DATA_PLAN_V1.md), [docs/UPDATE_PIPELINE_V1.md](./docs/UPDATE_PIPELINE_V1.md): 부서 계약·실데이터 계획·수집 구조.
 
-Legal·Data·Finance·Search·UX를 병렬 진행하고 PM/QA가 계약과 통합을 관리한다. 다음은 API 성공 요청 대조, 최소5구역 거래·건물 연결, 이용조건을 만족하는 경계 확보, 고시/첨부 parser·후보 검토 후 사실 반영 및 본인 실제 매물 검산이다.
+Legal·Data·Finance·Search·UX를 병렬 진행하고 PM/QA가 계약과 통합을 관리한다. 다음은 새 환경의 API 스모크 재확인, 최소5구역 거래·건물 연결, 이용조건을 만족하는 경계 확보, 고시/첨부 parser·후보 검토 후 사실 반영 및 본인 실제 매물 검산이다.

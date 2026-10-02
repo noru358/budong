@@ -31,7 +31,35 @@ export function normalizeServiceKey(value){
   if(!/%[0-9a-f]{2}/i.test(key)) return key;
   try{return decodeURIComponent(key);}catch{throw new Error("Invalid DATA_GO_KR_SERVICE_KEY encoding");}
 }
-function keyFrom(env){return normalizeServiceKey(requireSecret(env,"DATA_GO_KR_SERVICE_KEY"));}
+export function extractServiceKeyCandidates(value){
+  const raw=String(value??"").trim();
+  if(!raw) throw new Error("Missing DATA_GO_KR_SERVICE_KEY");
+
+  // A normal single-token secret should work as-is, regardless of length.
+  // Length filtering is only for pasted multi-line portal blocks.
+  if(!/\s/.test(raw)) return [normalizeServiceKey(raw)];
+
+  const pieces=[];
+  // data.go.kr general keys are long opaque URL/base64-like tokens.
+  // Extract only token-shaped candidates from pasted blocks; never persist/log values.
+  for(const match of raw.matchAll(/[A-Za-z0-9+%/_=.-]{40,260}/g)){
+    pieces.push(match[0]);
+  }
+
+  const out=[];
+  const seen=new Set();
+  for(const piece of pieces){
+    const cleaned=piece.replace(/^[\"']|[\"',;]$/g,"");
+    let key;
+    try{key=normalizeServiceKey(cleaned);}catch{continue}
+    if(key.length<40||key.length>220) continue;
+    if(/^https?\/\//i.test(key)) continue;
+    if(!seen.has(key)){seen.add(key);out.push(key);}
+  }
+  if(!out.length) throw new Error("No service-key-shaped token found in DATA_GO_KR_SERVICE_KEY");
+  return out;
+}
+function keyFrom(env){return extractServiceKeyCandidates(requireSecret(env,"DATA_GO_KR_SERVICE_KEY"))[0];}
 
 export function sanitizeApiError(error,{env=process.env}={}){
   let message=String(error?.message??error??"Unknown API error");
@@ -39,7 +67,7 @@ export function sanitizeApiError(error,{env=process.env}={}){
   const variants=new Set();
   if(supplied){
     variants.add(supplied);
-    try{variants.add(normalizeServiceKey(supplied));}catch{}
+    try{for(const key of extractServiceKeyCandidates(supplied))variants.add(key);}catch{}
     for(const value of [...variants]){
       variants.add(encodeURIComponent(value));
       variants.add(encodeURIComponent(encodeURIComponent(value)));
@@ -60,11 +88,11 @@ function publicEndpoint(endpoint){
   return url;
 }
 
-export function buildRtmsUrl({env=process.env,endpoint=ENDPOINTS.RTMS_MULTIFAMILY_SALE,lawdCd,dealYmd,pageNo=1,numOfRows=1000}){
+export function buildRtmsUrl({env=process.env,serviceKey=null,endpoint=ENDPOINTS.RTMS_MULTIFAMILY_SALE,lawdCd,dealYmd,pageNo=1,numOfRows=1000}){
   const url=publicEndpoint(endpoint);
   const month=checkCode(dealYmd,6,"DEAL_YMD");
   if(Number(month.slice(4))<1||Number(month.slice(4))>12||Number(month.slice(0,4))<1)throw new Error("DEAL_YMD must be a valid calendar month");
-  url.searchParams.set("serviceKey",keyFrom(env));
+  url.searchParams.set("serviceKey",serviceKey?normalizeServiceKey(serviceKey):keyFrom(env));
   url.searchParams.set("LAWD_CD",checkCode(lawdCd,5,"LAWD_CD"));
   url.searchParams.set("DEAL_YMD",month);
   url.searchParams.set("pageNo",String(positiveInt(pageNo,"pageNo")));
@@ -73,12 +101,12 @@ export function buildRtmsUrl({env=process.env,endpoint=ENDPOINTS.RTMS_MULTIFAMIL
 }
 
 export function buildBuildingHubUrl({
-  env=process.env,endpoint=ENDPOINTS.BUILDING_HUB_TITLE,
+  env=process.env,serviceKey=null,endpoint=ENDPOINTS.BUILDING_HUB_TITLE,
   sigunguCd,bjdongCd,platGbCd="0",bun,ji="0000",pageNo=1,numOfRows=100
 }){
   const url=publicEndpoint(endpoint);
   if(!["0","1","2"].includes(String(platGbCd)))throw new Error("platGbCd must be 0, 1 or 2");
-  url.searchParams.set("serviceKey",keyFrom(env));
+  url.searchParams.set("serviceKey",serviceKey?normalizeServiceKey(serviceKey):keyFrom(env));
   url.searchParams.set("sigunguCd",checkCode(sigunguCd,5,"sigunguCd"));
   url.searchParams.set("bjdongCd",checkCode(bjdongCd,5,"bjdongCd"));
   url.searchParams.set("platGbCd",String(platGbCd));
@@ -295,10 +323,21 @@ async function requestText({url,service,accept,fetchImpl,timeoutMs,env}){
   }finally{clearTimeout(timer);}
 }
 
+// Preserve upstream fallback only for an HTTP authentication rejection.
+async function requestWithServiceKeyCandidates({env,makeUrl,...options}){
+  const keys=extractServiceKeyCandidates(requireSecret(env,"DATA_GO_KR_SERVICE_KEY"));
+  for(let i=0;i<keys.length;i++){
+    try{return await requestText({...options,env,url:makeUrl(keys[i])});}
+    catch(error){
+      const rejected=error instanceof PublicApiError&&error.providerCode==="30"&&[401,403].includes(error.httpStatus);
+      if(!rejected||i===keys.length-1)throw error;
+    }
+  }
+}
+
 export async function fetchRtmsTrades({env=process.env,fetchImpl=environmentFetch,timeoutMs=20000,...args}){
   try{
-    const url=buildRtmsUrl({env,...args});
-    const xml=await requestText({url,service:"RTMS",accept:"application/xml,text/xml;q=0.9,*/*;q=0.1",fetchImpl,timeoutMs,env});
+    const xml=await requestWithServiceKeyCandidates({makeUrl:key=>buildRtmsUrl({env,...args,serviceKey:key}),service:"RTMS",accept:"application/xml,text/xml;q=0.9,*/*;q=0.1",fetchImpl,timeoutMs,env});
     return parseFlatXmlItems(xml,{env,pageNo:args.pageNo??1,numOfRows:args.numOfRows??1000}).map(raw=>normalizeRtmsTradeItem(raw,{
       sourceId:args.sourceId||"MOLIT_RTMS_MULTIFAMILY_SALE",
       observedAt:args.observedAt||new Date().toISOString()
@@ -311,8 +350,7 @@ export async function fetchRtmsTrades({env=process.env,fetchImpl=environmentFetc
 
 export async function fetchBuildingTitles({env=process.env,fetchImpl=environmentFetch,timeoutMs=20000,...args}){
   try{
-    const url=buildBuildingHubUrl({env,...args,endpoint:args.endpoint||ENDPOINTS.BUILDING_HUB_TITLE});
-    const text=await requestText({url,service:"Building HUB",accept:"application/json,application/xml;q=0.9",fetchImpl,timeoutMs,env});
+    const text=await requestWithServiceKeyCandidates({makeUrl:key=>buildBuildingHubUrl({env,...args,serviceKey:key,endpoint:args.endpoint||ENDPOINTS.BUILDING_HUB_TITLE}),service:"Building HUB",accept:"application/json,application/xml;q=0.9",fetchImpl,timeoutMs,env});
     if(text.trimStart().startsWith("<")){
       throwXmlProviderError(text,{service:"Building HUB",env});
       throw new Error("Building HUB expected JSON success response; received XML");

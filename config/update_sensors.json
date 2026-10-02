@@ -147,7 +147,7 @@
     {
       "id": "RTMS_REAL_TRANSACTIONS",
       "role": "STRUCTURED_DATA",
-      "status": "ADAPTER_READY_WAITING_LIVE_VALIDATION",
+      "status": "LIVE_SMOKE_PASSED_WAITING_PROJECT_LINKAGE",
       "source_id": "MOLIT_RTMS_MULTIFAMILY_SALE",
       "cadence": "DAILY",
       "sensor_type": "API",
