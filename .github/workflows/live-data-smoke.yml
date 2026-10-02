@@ -46,6 +46,7 @@ jobs:
         with:
           node-version: "22"
       - name: Smoke RTMS and Building HUB
+        shell: bash
         env:
           DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
           SMOKE_DEAL_YMD: ${{ inputs.deal_ymd }}
@@ -55,6 +56,7 @@ jobs:
           SMOKE_BUN: ${{ inputs.bun }}
           SMOKE_JI: ${{ inputs.ji }}
         run: |
+          set -o pipefail
           mkdir -p runtime/live-smoke
           node scripts/live_data_smoke.mjs | tee runtime/live-smoke/summary.json
       - name: Upload both service results

@@ -92,3 +92,7 @@ VWorld 공식 HTTPS 문서를 읽기 위해 `www.vworld.kr`을 기존 허용 목
 - 디자인 자체QA의 입력3구간 바로가기/포커스와 좁은화면 입력 검증을 함께 확인했다. 조사와 실제반영의 출처는 DESIGN_RESEARCH_V2.md에 구분했다.
 - 3개 검산용 가정의 독립 산술기대값과 XIRR NPV잔차 검증 PASS. 실제매물 자료를 검산한 결과는 아니다.
 - 기존Secret으로 실제 두API 각10행 정상응답 및25구1184사업장 전수baseline 재수집. 이는 첫페이지 접속성과 공개목록이며 동일5구역의 전체연결·최신단계·법적권리를 증명하지 않는다. 데이터/법무 보고의 관찰시각·링크·다음작업을 따른다.
+
+### 최종 업로드 후 API 결과 검사
+
+후속커밋c2a0270의 [Live Smoke36987073205](https://github.com/noru358/budong/actions/runs/36987073205) summary를 직접 내려받아 검사했다. RTMS는10행OK, Building HUB는 `fetch failed`, 전체ok=false였다. 이 실행의 Actions 표시가success인 것은 `node | tee` 파이프라인에서 실패상태가 전달되지 않은 문제였다. workflow에 명시적 bash와 pipefail을 추가하여 node의 실패를 job 실패로 보존하며 always artifact 업로드는 유지한다. 실패파이프라인의 실제 종료상태1도 로컬에서 확인했다. 이전두서비스 성공과 이 실행의 오류를 구분하며 최신 성공표시만으로 API통과를 판단하지 않는다.
