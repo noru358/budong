@@ -8,6 +8,6 @@
     "serve": "node --env-file-if-exists=.env scripts/serve.mjs",
     "watch:update": "node scripts/run_update_watch.mjs",
     "smoke:live": "node --env-file-if-exists=.env scripts/live_data_smoke.mjs",
-    "test:browser": "python3 scripts/browser_smoke.py"
+    "test:browser": "node scripts/browser_smoke.mjs"
   }
 }

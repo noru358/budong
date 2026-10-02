@@ -1,0 +1,9 @@
+{
+ "type":"FeatureCollection",
+ "note":"직접 작성한 예제입니다. 실제 구역 경계가 아닙니다. project_id는 연결할 구역 식별자로 바꾸세요.",
+ "features":[{
+  "type":"Feature",
+  "properties":{"project_id":"seoul-11590-01","boundary_kind":"USER_DRAWN","source_id":"USER_INPUT","certainty":"USER_ASSUMPTION","label":"직접 작성한 참고경계 예제"},
+  "geometry":{"type":"Polygon","coordinates":[[[126.94,37.50],[126.941,37.50],[126.941,37.501],[126.94,37.50]]]}
+ }]
+}

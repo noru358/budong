@@ -44,7 +44,7 @@ Live Data Smoke workflow에 `all_pages` 선택, `max_pages`, `num_of_rows`, `pla
 
 ## 검증
 
-2026-10-02 adapter/smoke/project reference/linkage 대상44개 테스트 통과. 새9개 수집/참고조회 테스트는 2페이지·빈응답·cap·메타데이터 누락·total 변동·반복페이지·타임아웃·선택구역문맥·법정동코드 추정 방지·후속페이지 키제거·3종서비스 endpoint/source 일치·SH 연면적 분리를 검증한다. 추가 smoke2개 테스트는 cap의 exit판정과 두 서비스의 독립 실패진단을 검증한다. 실제 프로젝트 데이터로 위장한 fixture mapping을 만들지 않았다.
+2026-10-02 adapter/smoke/project reference/linkage/workflow 대상47개 테스트 통과. 새9개 수집/참고조회 테스트는 2페이지·빈응답·cap·메타데이터 누락·total 변동·반복페이지·타임아웃·선택구역문맥·법정동코드 추정 방지·후속페이지 키제거·3종서비스 endpoint/source 일치·SH 연면적 분리를 검증한다. 추가 smoke 테스트는 cap의 exit판정, 두 서비스의 독립 실패진단, 역사 sample의0건/false 구별을 검증한다. Psych YAML parse와 전체 duplicate mapping key 검사, 입력10개 상한과 matrix/pipefail regression도 통과했다. 역사 sample은 실제 원문 검토 근거이며 해당 mock 응답 tests와 실제 live 결과를 따로 기록한다.
 
 서비스 범위는 공식 [아파트 매매 상세 catalog](https://www.data.go.kr/data/15126468/openapi.do), [단독/다가구 매매 catalog](https://www.data.go.kr/data/15126465/openapi.do), [연립다세대 catalog](https://www.data.go.kr/data/15126467/openapi.do)에서 2026-10-02 재확인했다. 세 서비스는 자치구 코드 앞5자리와 계약년월 조회이며 공개 호실을 추정하지 않는다.
 
@@ -58,6 +58,23 @@ Data는 [행정표준코드관리시스템 현행 조회](https://www.code.go.kr
 
 `HANNAM5_REVIEWED_PARCEL_SAMPLE`은 **2026-04-30 고시 시점의 한 필지**만 나타낸다. `sample_only=true`, `current_membership_verified=false`를 저장한다. 이 필지에 현재 건물이 조회되어도 정확한 표현은 ‘2026-04-30 편입필지의 현재 참고 건축물’이다. 현재 전체 사업구역 필지조서, 분양자격, 소유권, 입주권을 확인했다는 의미가 아니다. 스모크의11170/13200/대지0/0033-0013 요청은 이 알려진 sample에 한해 행별 필지 연결 및 제외이유를 검증하고 역사시점·원문/코드 근거와 count를 기록한다.
 
-해당 sample의 실제 건물/거래 행 연결 결과는 후속 원격 실행 후 기록한다.
+### 실제 복수페이지 + 한남5 역사 필지 교차검증 (18:42 KST)
+
+[실행36991292437](https://github.com/noru358/budong/actions/runs/36991292437), head `212d13da7fc445fb9223f42e9ee22ea5789a35c4`. 같은 Secret으로 용산구11170 / 202609 / 페이지당10행, 건물11170/13200/대지0/0033-0013을 조회했다. 세 matrix의 실제 JSON artifact에서 아래 값을 확인했다.
+
+| 요청 | 수집 / provider total | 실제 페이지 | 한남5 sample 연결 |
+|---|---:|---|---|
+| RH 연립다세대 | 11 / 11 | 2 (10 + 1) | 0; 다른 필지11 |
+| APT 매매 상세 | 16 / 16 | 2 (10 + 6) | 0; 다른 필지16 |
+| SH 단독/다가구 | 2 / 2 | 1 | 0; 공개 parcel identity 불완전2 |
+| 동빙고동33-13 Building HUB 표제부 | 1 / 1 | 1 | **1 / 1 PNU 정확일치** |
+
+전체조회는 모두 `COMPLETE` + `TOTAL_COUNT_REACHED`다. RH/APT는 실제 다음페이지까지 조회해 동일 total과 잔여행수를 확인했다. 건물1행은 세 matrix에서 동일하게 확인했다. 의미는 **한남5의 2026-04-30 편입조서에 실린 한 필지와 현재 건축물 참고자료1행의 정확한 필지 교차검증**이다. 거래가 해당 필지에 연결되지 않은0건을 특정 주택의 확정 무거래나 투자결론으로 해석하지 않는다. SH의 불완전 지번은 추정 복구하지 않는다.
+
+실제 관찰시각은 RH `2026-10-02T09:42:16.486Z`, APT `09:42:15.399Z`, SH `09:42:17.451Z`. `historical_parcel_sample_validation`에 source ID, 원고시 locator, 첨부 SHA/페이지, code 근거, 관찰/검토일, 제외이유별 count, membership_as_of와 `current_membership_verified=false`를 보존했다. 최상위 `project_linkage_validated=false`와 권리 미검증 상태는 유지한다.
+
+직전 [실행36991158062](https://github.com/noru358/budong/actions/runs/36991158062)에서는 RH/건물 조회와 동일1필지 연결은 성공했지만 APT/SH runner의 두 서비스가 `fetch failed`로 실패했다. provider 인증오류 응답은 없었다. 원래 실패 결과도 보존하고 동일 요청을 한 번만 재실행해 위 성공을 확인했다. 최초 실행의 workflow conclusion은 실패이므로 성공 기록으로 덮어쓰지 않는다. 각 실행 artifact는 `../data-v3/live-smoke-36991158062/`, `../data-v3/live-smoke-36991292437/`에 보존한다.
+
+동일5구역 전체 필지 membership·경계와 구역내 거래/건물 완전성 검증은 여전히 남는다. 로컬 서버는 실제 키가 안전하게 주입된 환경에서 위 API를 조회할 수 있으며, Actions의 성공이 이 Mac 환경에 키를 자동 주입하지는 않는다. 기존 Secret 재등록이나 채팅으로 키를 공유할 필요는 없다.
 
 VWorld 공식문서의 도시지역 `lt_c_uq111`은 재개발·재건축 경계 대체자료가 아니다. 시장정비구역/주거환경개선지구도는 사업유형이 다르므로 목표5구역의 geometry로 표시하지 않는다. 허위 geometry 없이 경계 연결 검증을 계속한다.
