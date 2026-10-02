@@ -2,6 +2,39 @@ name: Live Data Smoke
 
 on:
   workflow_dispatch:
+    inputs:
+      deal_ymd:
+        description: "RTMS 계약년월 YYYYMM (빈 값이면 현재 서울 기준 월)"
+        required: false
+        type: string
+      lawd_cd:
+        description: "RTMS 시군구 코드 (기본 11590 동작구)"
+        required: false
+        default: "11590"
+        type: string
+      sigungu_cd:
+        description: "건축물 시군구 코드"
+        required: false
+        default: "11590"
+        type: string
+      bjdong_cd:
+        description: "건축물 법정동 코드 (기본 10200 상도동)"
+        required: false
+        default: "10200"
+        type: string
+      bun:
+        description: "건축물 본번 4자리 (기본 0418)"
+        required: false
+        default: "0418"
+        type: string
+      ji:
+        description: "건축물 부번 4자리"
+        required: false
+        default: "0000"
+        type: string
+
+permissions:
+  contents: read
 
 jobs:
   smoke:
@@ -12,15 +45,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Check configured secret
-        env:
-          DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
-        run: |
-          if [ -z "$DATA_GO_KR_SERVICE_KEY" ]; then
-            echo "::error::Repository secret DATA_GO_KR_SERVICE_KEY is missing"
-            exit 1
-          fi
       - name: Smoke RTMS and Building HUB
         env:
           DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
-        run: node scripts/live_data_smoke.mjs
+          SMOKE_DEAL_YMD: ${{ inputs.deal_ymd }}
+          SMOKE_LAWD_CD: ${{ inputs.lawd_cd }}
+          SMOKE_SIGUNGU_CD: ${{ inputs.sigungu_cd }}
+          SMOKE_BJDONG_CD: ${{ inputs.bjdong_cd }}
+          SMOKE_BUN: ${{ inputs.bun }}
+          SMOKE_JI: ${{ inputs.ji }}
+        run: |
+          mkdir -p runtime/live-smoke
+          node scripts/live_data_smoke.mjs | tee runtime/live-smoke/summary.json
+      - name: Upload both service results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-data-smoke-summary
+          path: runtime/live-smoke/summary.json
+          retention-days: 7

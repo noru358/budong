@@ -52,6 +52,11 @@ test("missing project is a candidate, not automatic deletion",()=>{
   assert.equal(d[0].kind,CHANGE_KIND.PROJECT_MISSING);
 });
 
+test("ambiguous structured snapshots fail instead of silently merging or deleting projects",()=>{
+  assert.throws(()=>diffProjectSnapshots([],[{canonical_name:"A 구역"},{canonical_name:"A구역"}]),/duplicate canonical name/);
+  assert.throws(()=>diffProjectSnapshots([{}],[]),/unnamed project/);
+});
+
 test("candidate cannot become official without complete first-party evidence",()=>{
   const c=makeChangeCandidate({
     sensorId:"s",sourceId:"SEOUL_CLEANUP",kind:CHANGE_KIND.STAGE_CHANGED,
@@ -60,11 +65,27 @@ test("candidate cannot become official without complete first-party evidence",()
   assert.equal(mayPromoteCandidate(c,{certainty:"SOURCE_CONFIRMED"}).ok,false);
   assert.equal(mayPromoteCandidate(c,{
     certainty:"OFFICIAL_CONFIRMED",source_id:"SEOUL_OFFICIAL_NOTICE",
-    source_locator:"https://official.invalid",event_name_official:"조합설립인가",event_date:"2026-09-29"
+    source_locator:"https://www.seoul.go.kr/notice/1",event_name_official:"조합설립인가",event_date:"2026-09-29",
+    notice_number:"서울특별시 고시 제2026-1호",issuer:"서울특별시"
   }).ok,true);
 });
 
 test("candidate ids are deterministic for identical observations",()=>{
   const args={sensorId:"s",sourceId:"x",kind:CHANGE_KIND.NEW_PROJECT,observedAt:"2026-09-29",locator:"u",payload:{a:1}};
   assert.equal(makeChangeCandidate(args).candidate_id,makeChangeCandidate(args).candidate_id);
+});
+
+test("official promotion blocks unapproved sources, forged locators, missing metadata and invalid dates",()=>{
+  const c=makeChangeCandidate({sensorId:"s",sourceId:"SEOUL_CLEANUP",kind:CHANGE_KIND.STAGE_CHANGED,observedAt:"2026-10-01",locator:"https://cleanup.seoul.go.kr",payload:{project:"A"}});
+  const valid={certainty:"OFFICIAL_CONFIRMED",source_id:"LAND_USE_EUM_GOV_NOTICE",source_locator:"https://www.eum.go.kr/web/gs/gv/gvGosiDet.jsp?seq=610123",event_name_official:"정비구역 지정",event_date:"2026-09-29",notice_number:"서울특별시 고시 제2026-1호",issuer:"서울특별시"};
+  assert.equal(mayPromoteCandidate(c,valid).ok,true);
+  for(const override of [
+    {source_id:"SEOUL_CLEANUP"},
+    {source_locator:"https://www.eum.go.kr.evil.example/notice"},
+    {source_locator:"https://user:password@www.eum.go.kr/notice"},
+    {source_locator:"http://www.eum.go.kr/notice"},
+    {notice_number:" "},{issuer:""},{event_date:"2026-02-30"},{event_date:"not-a-date"}
+  ]) assert.equal(mayPromoteCandidate(c,{...valid,...override}).ok,false,JSON.stringify(override));
+  assert.equal(mayPromoteCandidate({...c,status:CANDIDATE_STATUS.REJECTED},valid).ok,false);
+  assert.equal(mayPromoteCandidate(c,{...valid,source_id:"SEOUL_OFFICIAL_NOTICE",source_locator:"https://www.dongjak.go.kr/notice"}).ok,true);
 });

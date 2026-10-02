@@ -115,7 +115,11 @@
           "강동구"
         ]
       ],
-      "note": "HTML 변화는 신규/단계변경 가능성을 알리는 discovery signal. source-specific row parser 연결 전에는 NEEDS_PARSER."
+      "note": "정보몽땅 실제 사업장 표 파서. 자치구·페이지번호·행수·중복·전체건수 검증 후 전페이지 목록을 정형 diff. 최초 baseline 이후 신규/누락/명칭/단계/유형/지번 변경은 NEEDS_OFFICIAL_VERIFICATION 후보만 생성하며 법적 사실 자동 승격 금지.",
+      "required": true,
+      "timeout_ms": 20000,
+      "parser": "SEOUL_CLEANUP_PROJECT_LIST_V1",
+      "page_size": 100
     },
     {
       "id": "SEOUL_PLAN_PLUS_BOUNDARY",
@@ -126,7 +130,9 @@
       "sensor_type": "HTTP_SNAPSHOT",
       "url": "https://data.seoul.go.kr/dataList/OA-22712/F/1/datasetView.do",
       "change_kind": "SOURCE_FILE_VERSION_CHANGED",
-      "note": "새 SHP 버전 발견용. ADMIN_CANDIDATE만 허용하며 법적 OFFICIAL boundary로 자동 승격 금지."
+      "note": "새 SHP 버전 발견용. ADMIN_CANDIDATE만 허용하며 법적 OFFICIAL boundary로 자동 승격 금지.",
+      "required": true,
+      "timeout_ms": 20000
     },
     {
       "id": "SEOUL_CITY_AND_GU_NOTICES",
@@ -141,7 +147,7 @@
     {
       "id": "RTMS_REAL_TRANSACTIONS",
       "role": "STRUCTURED_DATA",
-      "status": "ADAPTER_READY_WAITING_LIVE_SECRET",
+      "status": "ADAPTER_READY_WAITING_LIVE_VALIDATION",
       "source_id": "MOLIT_RTMS_MULTIFAMILY_SALE",
       "cadence": "DAILY",
       "sensor_type": "API",
@@ -168,5 +174,6 @@
       "SONGPA_NOTICE_BOARD"
     ],
     "rule": "Discovery-source changes may update observed snapshots/candidates only. OFFICIAL_CONFIRMED requires first-party administrative evidence and exact event metadata."
-  }
+  },
+  "network_timeout_ms": 20000
 }

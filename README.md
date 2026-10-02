@@ -1,82 +1,67 @@
 # budong
 
-재개발·재건축 지도·검색·개별 물건 투자분석 프로젝트.
+서울 재개발·재건축 구역을 찾고, 공식 단계·근거를 확인한 뒤 사용자가 발견한 물건의 자금·손익을 비교하는 개인 V1 웹서비스.
 
-## 정본
+## 현재 상태 — 2026-10-02
 
-1. [REDEVELOPMENT_HANDOFF_v0.2_20260928.md](./REDEVELOPMENT_HANDOFF_v0.2_20260928.md)
-2. [V1_PROTOTYPE_CONTRACT.md](./V1_PROTOTYPE_CONTRACT.md)
+**부서별 병렬 구현으로 수동 물건 입력·저장·분석·비교 흐름을 완성했다. GATE 2 실데이터 통합은 진행 중이다.**
 
-실행 상세:
-- [PROJECT_DASHBOARD.md](./PROJECT_DASHBOARD.md) — 현재 상태판 / 사용자·AI 다음 액션
-- [docs/WORKSTREAMS_V1.md](./docs/WORKSTREAMS_V1.md)
-- [docs/REAL_DATA_PLAN_V1.md](./docs/REAL_DATA_PLAN_V1.md)
-- [docs/UPDATE_PIPELINE_V1.md](./docs/UPDATE_PIPELINE_V1.md) — API 없는 변경사항까지 포함한 업데이트 체계
+- 홈: 서울 44구역, 최근 본 구역, 분석 중인 물건.
+- 검색: 실제 구역 이름·안전한 축약명·대표지번·부분일치·오타 검색. 검증된 역 자료는 아직 미연결.
+- 상세: 관찰값과 법적 사건 분리, 공식 용어 설명, 등록 근거 원문 링크, 정책·사업시행자·권리 미확인 상태.
+- 물건: 실제 구역에 수동 입력, 초안 저장, 수정·삭제, 브라우저 재방문, 사용자 선택 비교, JSON 내보내기.
+- 계산: 초기·추가·최대 자기자금, 경제적 비용, 세전손익, MOIC·날짜별 XIRR·BEP, 자금 시간표·부족일, 공개된 시나리오 가정.
+- 실데이터 조회: 서버에서 키를 사용해 연립다세대 거래·건축물 조회. 키는 브라우저에 전달하지 않는다.
+- 지도: 검토된 경계 파일이 없어 현재 FAIL-CLOSED. 근거·검토·이용조건을 만족하는 GeoJSON이 연결되면 구역 경계를 표시한다.
+- 업데이트: DAILY/WEEKLY 주기, 실패 판정, 이전 성공 상태·누적 후보 보존, 선택적 원문 보존. 실제 정보몽땅 목록 parser로 서울25구·1,184개 사업장 전수 baseline을 수집했다. 공식 검토 후 사실 반영과 UI 자동 갱신은 미완료.
 
-설계가 변경되면 별도 handoff를 계속 늘리기보다 위 정본의 CURRENT/NEXT를 갱신한다.
+44개 기본 구역 정보는 **2026-09-28 관찰값**이다. API mock 테스트 통과나 공식확인 라벨 등록이 최신 실데이터 검증을 뜻하지 않는다. 제공된 키로 클라우드에서 호출한 두 서비스는 **HTTP 400 / 제공기관 코드 10 / INVALID_REQUEST_PARAMETER_ERROR**로 실패했다. 공식 포털 문서는 프록시 전송 적용 후 HTTP200으로 확인했고, 현재 API 주소·필수 파라미터가 Swagger와 일치한다. 필수 파라미터만으로도 같은 오류가 난다. 사용자가 포털에서 확인한 종로구 202401 미리보기는 000/OK, 전체 20건 중 10건 반환으로 정상이다. 성공 요청 URL을 대조해 클라우드 오류를 해결해야 한다.
 
-## 현재 상태 — 2026-09-29
+## 실행
 
-### GATE 0 — 완료
-- V1 Prototype Contract 확정
-- 공식 법적/행정 용어 canonical
-- 쉬운 설명은 보조 레이어
-- 자동 투자추천 / 자동 법률판단 금지
+맥에서 실행할 때는 [맥 실행 안내](docs/MAC_START.md)를 따른다. 최신 실행 패키지를 풀어 Node22/24로 시작하면 앱 주소는 `http://localhost:4173/web/`이다. 현재 클라우드에서 실행 중인 loopback 주소가 사용자 맥에 자동으로 연결되는 것은 아니다.
 
-### GATE 1 — 완료
-- 홈 / 지도 / 검색 / 구역 상세 / 물건 분석·비교 fixture flow 구현
-- Search: exact > alias exact > prefix > substring > trigram fuzzy
-- Finance: 초기 자기자금 / 향후 추가자금 / 최대 누적 자기자금 / 총 경제적 비용 / 세전손익 / MOIC / XIRR / BEP
-- provenance-first DB schema
-- GitHub Actions QA
+Node.js 22.23.3 또는 24, Python 3을 사용한다. 외부 npm 의존성·빌드·DB 서비스는 현재 필요 없다. 기존 격리 checkout을 사용하고 별도 worktree를 만들지 않는다.
 
-### GATE 2 — 진행 중
-- 서울 실제 정비사업 shallow seed **44개** 완료
-- deep validation target **10개** 선정
-- 정보몽땅 current-stage snapshot과 법적 고시 event를 분리
-- 신탁/사업시행자 등 governance event를 stage와 분리
-- 한남5·잠실5·상도15·목동10 등 공식 고시 1차 연결
-- 불광제5 공식 정보몽땅 stage history 연결
-- RTMS + Building HUB adapter 코드 구현
-- 실제 서울 seed를 홈/검색/상세 UI에 연결
-- 지도 경계 원천 결정: 서울플랜+ SHP를 개인 V1의 `ADMIN_CANDIDATE`로 사용 예정; 파일 미수집 상태라 현재 UI는 FAIL-CLOSED
-- 개별 물건 분석은 아직 fixture
-- **Update Watcher baseline 구현**
-  - 정보몽땅 25개 자치구 사업장 페이지 일 1회 snapshot 감시
-  - 서울플랜+ 데이터셋 주 1회 버전 감시
-  - source snapshot → diff → change candidate
-  - discovery change가 OFFICIAL_CONFIRMED를 직접 덮어쓰지 못함
-  - 서울시/25개 자치구 고시·공고 parser는 다음 구현
-  - GitHub Actions `Update Watch`: 매일 07:20 KST
+클라우드의 검증된 Node 활성화:
 
-## 데이터 안전 규칙
+```bash
+export PATH="/workspace/.budong-onboarding/tools/node-v22.23.3-linux-x64/bin:$PATH"
+cd /workspace/budong
+npm test
+npm run serve
+```
 
-- 포털의 “현재단계 표시”는 `observed_at` snapshot이다.
-- 법적 인가/지정 event의 날짜는 공식 고시·공고 근거가 있을 때만 확정한다.
-- 고시 정정은 새로운 단계 진입으로 취급하지 않는다.
-- 신탁사/사업시행자 지정 등은 `PROJECT_GOVERNANCE_EVENT`로 별도 저장한다.
-- unknown은 0이 아니라 `NEEDS_REVIEW`.
-- API 키는 Git에 커밋하지 않는다.
+기본 서버는 loopback의 4173 포트에서 실행하며 앱 경로는 `/web/`이다. 스냅샷 복원 후 서버를 다시 시작한다. 다른 포트는 `PORT=4175 npm run serve`로 설정한다. 개인용 서버이며 공개 배포·인증·사용자별 서버 저장은 아직 검증하지 않았다.
 
-## 지금 막힌 외부 의존성
+API 키는 환경 설정에 `DATA_GO_KR_SERVICE_KEY`로 안전하게 등록하거나, 로컬에서 기존 `.env.example`의 변수명을 참고해 ignored `.env`에 직접 설정한다. `serve`와 `smoke:live`는 `.env`가 있으면 로드한다. 키를 채팅·커밋·로그로 전달하지 않는다.
 
-공공데이터포털 활용신청은 사용자 확인 기준 완료됐다. 실제 RTMS / Building HUB 호출을 위해서는 발급된 키를 로컬 `.env` 또는 GitHub Actions Repository Secret의 **`DATA_GO_KR_SERVICE_KEY`** 로만 주입해야 한다.
+```bash
+npm run smoke:live -- --deal-ymd 202609
+```
 
-GitHub 방식에서는 공공데이터포털의 **Decoding 인증키**를 `DATA_GO_KR_SERVICE_KEY`로 저장한 뒤, `Actions → Live Data Smoke → Run workflow`를 실행한다. 이 수동 smoke workflow는 실거래가 + Building HUB를 실제 호출하며 키를 출력하거나 artifact에 저장하지 않는다.
+스모크는 RTMS와 Building HUB의 접속·데이터 유무·제공기관 오류를 각각 보고한다. 유효한 빈 응답은 `NO_ROWS`이며 구역 내 거래나 5개 구역 연결 완료가 아니다. 공식 문서로 확인한 건축물 endpoint는 `--building-endpoint`로 지정할 수 있다. 목적지는 HTTPS `apis.data.go.kr`로 제한하며 TLS 검증을 유지한다.
 
-키를 채팅이나 저장소 파일에 붙이지 않는다.
+## 검증
 
-## 다음
+- `npm test`: **117 tests / 117 pass / 0 fail / 0 skipped** (2026-10-02, Node 22.23.3).
+- 서버 실행 후 `npm run test:browser -- --base-url http://127.0.0.1:4173`: 검색·원문 링크·수동 입력·계산·저장·복원·선택 비교·내보내기·미확인값·재방문·모바일·지도 가드·삭제 검증. 클라우드에 공급된 Python Playwright와 `/usr/bin/chromium`을 사용한다.
+- 실제 인증·5구역 연동·경계 수집·공개 배포·경쟁제품 사용성 비교는 미완료다.
 
-### 사용자
-1. `DATA_GO_KR_SERVICE_KEY`를 GitHub Repository Secret으로 안전하게 주입
-2. `Actions → Live Data Smoke → Run workflow` 1회 실행
-3. 결과 성공/실패만 알려주기
+저장한 물건은 이 브라우저의 localStorage에 남는다. 브라우저 데이터를 지우면 사라지므로 JSON 내보내기로 보관할 수 있다. 서버 DB·계정 동기화·내보낸 파일의 가져오기는 현재 지원하지 않는다.
 
-### AI / Codex
-1. 정보몽땅 source-specific row parser
-2. 서울시 고시 parser + 25개 자치구 notice adapter registry
-3. 남은 deep target 공식 원문 확정
-4. Live Data Smoke 성공 후 RTMS / Building HUB를 최소 5개 deep target에 연결
-5. 서울플랜+ SHP 실제 파싱 → 개인 V1 `ADMIN_CANDIDATE` 지도
-6. GATE 2 QA → 실제 매물 dogfood(GATE 3)
+업데이트 실행은 checkout 밖에 생성물을 두는 방식도 지원한다:
+
+```bash
+node scripts/run_update_watch.mjs --state /workspace/.budong-onboarding/update-watch/state.json --candidates /workspace/.budong-onboarding/update-watch/candidates.json --report /workspace/.budong-onboarding/update-watch/last-run.json --snapshots-dir /workspace/.budong-onboarding/update-watch/snapshots
+```
+
+## 정본과 다음 작업
+
+- [PROJECT_DASHBOARD.md](./PROJECT_DASHBOARD.md): 부서별 완료·진행·외부 조건·사용자 액션.
+- [REDEVELOPMENT_HANDOFF_v0.2_20260928.md](./REDEVELOPMENT_HANDOFF_v0.2_20260928.md): 제품 원칙과 CURRENT/NEXT.
+- [V1_PROTOTYPE_CONTRACT.md](./V1_PROTOTYPE_CONTRACT.md): 화면·계산·공식 용어 계약.
+- [docs/VALIDATION_V1.md](./docs/VALIDATION_V1.md): 이번 검증 결과·범위·외부 실패 기록.
+- [docs/WORKSTREAMS_V1.md](./docs/WORKSTREAMS_V1.md), [docs/REAL_DATA_PLAN_V1.md](./docs/REAL_DATA_PLAN_V1.md), [docs/UPDATE_PIPELINE_V1.md](./docs/UPDATE_PIPELINE_V1.md): 부서 계약·실데이터 계획·수집 구조.
+
+Legal·Data·Finance·Search·UX를 병렬 진행하고 PM/QA가 계약과 통합을 관리한다. 다음은 API 성공 요청 대조, 최소5구역 거래·건물 연결, 이용조건을 만족하는 경계 확보, 고시/첨부 parser·후보 검토 후 사실 반영 및 본인 실제 매물 검산이다.

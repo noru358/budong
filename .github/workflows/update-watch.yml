@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: update-watch-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   watch:
     runs-on: ubuntu-latest
@@ -21,23 +25,25 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: runtime/update-watch
-          key: update-watch-${{ github.run_id }}
+          key: update-watch-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            update-watch-
+            update-watch-${{ github.ref_name }}-
       - name: Run discovery watchers
-        run: node scripts/run_update_watch.mjs
+        run: node scripts/run_update_watch.mjs --snapshots-dir runtime/update-watch/snapshots
       - name: Save watcher state
         if: always()
         uses: actions/cache/save@v4
         with:
           path: runtime/update-watch
-          key: update-watch-${{ github.run_id }}
+          key: update-watch-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Upload change-candidate report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: update-watch-${{ github.run_id }}
+          name: update-watch-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             runtime/update-watch/state.json
             runtime/update-watch/candidates.json
+            runtime/update-watch/last-run.json
+            runtime/update-watch/snapshots
           retention-days: 30

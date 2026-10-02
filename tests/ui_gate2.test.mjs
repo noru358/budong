@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const html=fs.readFileSync(new URL("../web/index.html",import.meta.url),"utf8");
+const html=fs.readFileSync(new URL("../web/app.mjs",import.meta.url),"utf8");
 
 test("UI loads real Seoul seed and deep validation data",()=>{
   assert.match(html,/seoul_seed_v1\.json/);

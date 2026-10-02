@@ -1,107 +1,109 @@
 # PROJECT DASHBOARD — budong
 
-기준일: **2026-09-29**  
-정본: `REDEVELOPMENT_HANDOFF_v0.2_20260928.md` + `V1_PROTOTYPE_CONTRACT.md`
+기준일: **2026-10-02 (Asia/Seoul)**. 구현 기준 checkout `ca6feed` 위의 로컬 변경. 원격 최신 커밋·Actions 실행 결과는 확인하지 못했다.
 
-## 한 줄 상태
+정본: `REDEVELOPMENT_HANDOFF_v0.2_20260928.md` + `V1_PROTOTYPE_CONTRACT.md`.
 
-**GATE 0·1 완료. GATE 2 실데이터 통합 + 업데이트 자동화 구축 중.**
+## 목표와 전체 상태
 
-## Gate Board
+재개발닷컴 조사·역분해를 바탕으로 서울 구역 탐색 → 공식 단계·근거 확인 → 실제 물건 입력 → 자금·손익 비교를 더 편하게 만드는 서비스.
 
-| Gate | 목표 | 상태 |
+**5개 부서를 병렬 실행해 개인 수동입력 V1을 구현·통합·검증했다. G2 실데이터·경계 연결은 진행 중이다.** PM·QA는 부서 계약과 공통 검증을 관리한다. Gate는 공동 완료판정이며 부서를 차례대로 기다리게 하는 순서가 아니다.
+
+UX 부서에 디자인 담당을 추가해 공동 검토·수정을 완료했다. 디자인은 화면 위계·숫자/표 가독성·반응형·시각 접근성을, UX는 입력/비교 동선·오류 안내·키보드 포커스를 맡았다. Mac 실행 안내는 `docs/MAC_START.md`, 디자인 근거는 `docs/DESIGN_REVIEW_V1.md`를 따른다. 현재 도구는 Linux 클라우드에 연결돼 있으며 사용자 맥 화면·앱 터미널 연결은 없다.
+
+| 단계 | 상태 | 근거 / 완료조건 |
 |---|---|---|
-| G0 | V1 범위·법적용어·금지사항 Lock | ✅ DONE |
-| G1 | Fixture 5화면 + Search + Finance + QA | ✅ DONE |
-| G2 | 실제 서울 데이터 + provenance + update pipeline | 🚧 IN PROGRESS |
-| G3 | 본인 실제 매물 Dogfood | ⏳ NEXT |
-| G4 | 소수 지인 사용성 테스트 | ⏳ LATER |
+| 경쟁제품 조사·역분해 | 정본에 완료 기록 | 검색·사업단계·상세 UX 요구사항 반영. 상세 원본·화면별 비교표는 checkout에 없음 |
+| G0 제품 계약 | 완료 | 서울 개인 V1, 공식 용어·출처·계산·라이선스 원칙 |
+| G1 프로토타입 → 개인 입력 V1 | 구현·검증 | 실제 구역 수동 물건 입력·저장·수정·삭제·선택 비교·재방문. 지도는 경계 미연결 가드 |
+| G2 실데이터 통합 | 진행 중 | 같은 대표5구역에서 공식 원문·단계·거래·건물·검증된 경계 연결 필요 |
+| G3 본인 실사용 | 미착수 | 실제 매물 2~3개 검산 후 반복사용 가치 확인 |
+| G4 지인 검증 | 미착수 | 공식 단계·필요자금·미확인사항 이해도 확인 |
+| 공개 웹·앱 | 후속 검토 | 이용조건·서버 저장·운영·배포·경쟁제품 동일과제 비교 필요 |
 
-## 현재 구현
+## 부서별 병렬 작업판
 
-### Product / UX
-- 실제 서울 44개 seed를 홈/검색/상세에서 사용
-- 공식 단계 snapshot과 법적 event를 구분
-- 물건 분석은 아직 fixture
-- 지도는 공식/허용 경계 연결 전 FAIL-CLOSED
+| 부서 | 이번 구현·검증 | 다음 작업 | 의존성 / 외부 조건 |
+|---|---|---|---|
+| Legal / Ontology | 공식 단계 설명·근거 구분, 대표5구역/6고시의 제목·번호·날짜·본문 재검토, 잠실5 고정 상세주소·정정 연결 | 첨부 전체·후속 최신 고시·개별 권리 검토, 사업유형/시행방식별 사전 보강 | 공식 원문·실제 물건 자료. 키 없이 독립 진행 |
+| Data | 키 단일 인코딩, XML/JSON gateway 오류 보존, 타임아웃·키 제거, 두 서비스 독립 스모크·서버측 조회, 공식 Swagger 대조 | 성공 포털 URL 대조·live 성공, 5구역 거래/건물 연결, 고시 adapter·이용허락된 경계 확보 | 사용자 포털 성공 요청, 키 지속 바인딩·허용 경계 원천 |
+| Finance | 엄격 입력·날짜·부채 검증, 자금시간표·부족일, 기준/낙관/보수 시나리오, 가상20사례 정상 | 실제 물건 검산·가정 검증, 필요 확인 후 중간 대출상환·보증금 반환 모델 | 실제 물건2~3개. 수동 입력은 API와 독립 |
+| Search | 실제44구역 이름·주소·안전축약·오타 검색, 과잉 주소/번호 매칭 방지, 일치 설명 | 검토된 옛 명칭·역 자료 연결, 실제 사용자 검색어 평가 | Data의 근거 있는 검색자료. 미등록 역 추정 금지 |
+| UX / Frontend | 홈·실구역 검색/상세, 물건 입력·초안 저장·수정/삭제·선택 비교·재방문·내보내기, 현금흐름·가정·미확인 표시 | 검토된 경계 지도, 실제 데이터/수동입력 결합, 실사용 피드백 반영 | Data 경계·실데이터, Legal 확인 상태, Finance 계약 |
+| Data / QA 업데이트 | 일/주 주기·실패/누적 보존·원자쓰기, 실제 HTML 전수 parser, 서울25구/1,184개 사업장 baseline·원문 저장 | 고시/첨부 parser·후보 매칭·검토→사실 저장→UI 반영, 다음 주기 실제 변경 감시 | 최초 baseline은 후보0. 변화 후보는 공식 사실과 구별 |
+| Product / 통합 QA | Node 개인 서버·공용계약 통합, 비공개 파일 차단·CSP, 전체 테스트·브라우저 검증 | G2 대표5구역 공동 완료판정, G3/G4 실사용, 경쟁제품 동일 과제 비교 | 부서 산출물·공식 자료·사용자 피드백 |
 
-### Legal / Ontology
-- PROJECT_STAGE_EVENT
-- PROJECT_GOVERNANCE_EVENT
-- RIGHTS_REGULATION_EVENT
-- 고시 정정은 별도 correction
-- unknown → NEEDS_REVIEW
+## 부서 인수인계와 파일 소유
 
-### Data
-- 서울 shallow seed 44개
-- deep target 10개
-- RTMS adapter
-- Building HUB adapter
-- Source/License/Assertion/Lineage
-- 서울플랜+는 ADMIN_CANDIDATE / RED
+| 담당 | 소유 / 전달 |
+|---|---|
+| Legal | `src/legal.mjs`, legal tests → Data/UX/QA에 근거·확인상태 계약 |
+| Data | adapters·live smoke·workflow·관련 tests → 서버/UX에 정상화 데이터·안전한 오류 |
+| Finance | `src/finance.mjs`, finance tests → UX/QA에 입력·원장·시나리오 계약 |
+| Search | `src/search.mjs`, search tests → UX/QA에 검색 결과·일치 설명 |
+| UX | `web/app.mjs`, `web/index.html`, `src/storage.mjs`, storage tests → 사용자 동선·오류/포커스·로컬 저장 |
+| UX / Design | `web/styles.css`, `docs/DESIGN_REVIEW_V1.md` → 화면 위계·숫자/표 가독성·반응형·시각 접근성, UX와 클래스/레이아웃 협의 |
+| Data/QA 업데이트 | updater·watcher·센서 config·workflow·관련 tests → 수집 상태·누적후보·원문 |
+| 통합 담당 | 서버·transport·브라우저 smoke·package·공통 문서. 공용 기존 prototype/DB 변경은 관련 부서와 합의 |
 
-### Update Automation
-- 정보몽땅 25개 자치구 daily snapshot watcher
-- 서울플랜+ weekly version watcher
-- Diff → Candidate 구조
-- 서울시/25개 구청 고시 parser는 다음 구현
-- Candidate가 OFFICIAL fact를 자동 덮어쓰지 못함
+## 검증 대시보드
 
-### QA
-- unit/integration tests
-- GitHub Actions CI
-- live-data smoke workflow
-- scheduled update-watch workflow
+| 검사 | 결과 | 한계 |
+|---|---|---|
+| Node22.23.3 전체 suite | PASS — 117 tests / 117 pass / 0 fail / 0 skipped | 실제 제공기관 접근·배포 성공과 구분 |
+| 실제 Chromium 사용자 동선 | PASS | 격리된 브라우저 프로필, 테스트용 수동 물건 |
+| 검색·원문→입력→계산→저장→복원→비교→내보내기→삭제 | PASS | JSON 가져오기·계정 동기화 미지원 |
+| 미확인 금액 보존 | PASS — 빈 입력은 null, 확정 계산 없음 | 사용자 가정 자체의 정확성은 실사용 검증 |
+| 모바일390px·CSP·페이지 오류 | PASS — 가로 넘침/페이지 오류 없음 | 모든 기기·접근성 전체 감사 아님 |
+| UX·디자인 공동 개선 | PASS — 오류 항목 연결·포커스·만원→원 보조표시·숫자 정렬·모바일 첫 열 유지 | 실제 Chromium1280/390/320px, 사용자 Mac 미검증 |
+| 실행 패키지 | PASS — ZIP을 별도 폴더에 풀어 앱 실행·브라우저 전체 동선 확인 | 패키지에 실제 키/개인 물건 데이터 미포함, Mac에서 Node22/24 필요 |
+| 사용자 포털 RTMS 미리보기 | 사용자 제공 정상 응답: 000/OK, total20/반환10 | 종로구11110, 202401. 클라우드 성공으로 간주하지 않음 |
+| 서울 사업장 실제 전수 수집 | PASS — 25구·1,184개 사업장·26페이지, 필수오류0 | 최초 baseline·후보0, 앱 seed/공식 사실 자동 변경 없음 |
+| 기존 공식 고시 재검토 | PASS — 5구역·6고시의 정보·HTML 본문 | 첨부 전체·후속 최신성·개별 권리 미확인 |
+| 클라우드 RTMS / Building HUB | FAILED — HTTP400/code10/INVALID_REQUEST_PARAMETER_ERROR | 성공 요청 URL 대조 필요. 키 무효로 단정하지 않음 |
+| 경계 수집·5구역 실제 연결·최신 원문 검토 | 미완료 | G2 종료판정 미충족 |
+| 경계 대체 원천 조사 | WMS/WFS 허용 이용조건 후보2개 확인, YELLOW | VWorld 상세문서 프록시 CONNECT403, 실제 레이어·키 요건 미확인 |
 
-## GATE 2 Remaining
+## API 오류 진단
 
-- [ ] DATA_GO_KR_SERVICE_KEY Secret 주입 + Live Data Smoke 성공
-- [ ] 최소 5개 deep target RTMS 실제 거래 연결
-- [ ] 최소 5개 deep target Building HUB 연결
-- [ ] 남은 deep target 공식 고시 원문 확정
-- [ ] 정보몽땅 row parser
-- [ ] 서울시/25개 구청 notice adapter
-- [ ] 서울플랜+ SHP 실제 파일 파싱
-- [ ] 개인 V1 지도 ADMIN_CANDIDATE 경계 연결
-- [ ] 실제 물건 입력 UI
-- [ ] GATE 2 QA
+- 전달된 키는 임시 테스트·서버 프로세스에만 주입했다. 저장소·지침·로그·프론트엔드에 키를 저장하지 않았다.
+- 클라우드의 기본 RTMS/Building 요청, RTMS 과거월·응답형식 대조, curl/urllib 전송 대조는 제공기관 code10으로 실패했다.
+- Building `BldRgstService_v2` 대조 경로는 code12/서비스없음. 기본 endpoint를 변경하지 않았다.
+- 사용자가 같은 키로 포털 미리보기에서 성공 응답을 제공했다. 성공 URL에서 키를 제거하고 경로·파라미터 대조가 필요하다.
+- 프록시 전송 적용 후 공식 포털 Swagger·정보몽땅·경계자료 목록 HTTP200 확인. API 기본 주소·필수 파라미터는 공식 Swagger와 일치하며 두 서비스 모두 필수 파라미터만으로도 code10. GitHub Actions 조회는 Forbidden. 사용자 PC computer-use는 X11/DISPLAY 미연결로 접근 실패.
+- 키는 현재 개발 서버 프로세스에만 존재한다. 클라우드 설정의 영구 바인딩과 GitHub Secret은 별개이며 등록 여부를 구분한다.
 
-## USER ACTION
+## 현재 데이터·기능 제한
 
-현재 사용자가 직접 해야 하는 필수 외부 액션은 **1개**.
+- 기본44구역은 서울7개 자치구의 **2026-09-28 관찰값**. 25개 자치구는 감시 대상이다.
+- deep10개 중5구역의 공식확인 사건6건은 제목·번호·날짜·HTML 본문을 2026-10-02에 재확인했다. 첨부 전체·후속 최신단계·개별 권리는 미확인이다. 자료확인 사건3건은 기존 등록 상태다.
+- 실제 권리정보·경계 GeoJSON은 미연결. 경계는 출처·검토·이용조건 gate를 통과해야 표시한다.
+- 서울플랜+ 최신 경계자료(202609)는 참고 ADMIN_CANDIDATE / 공공누리4(상업 이용·변경 금지), 법적 효력 없음. 파일은 다운로드 프록시403으로 미수신이며 변환·지도 이용허락도 미확인이라 GeoJSON 변환·배포 중단. 다른 허용 원천이나 권리자의 허락이 필요.
+- localStorage 개인 저장. DB 런타임·계정·서버 동기화·백업 가져오기·공개 배포 미지원.
+- 매도 시 대출·보증금 전액상환 모델. 중간 상환/반환 미지원. 세금·금융비는 사용자가 명시한 금액만 반영.
 
-`GitHub → noru358/budong → Settings → Secrets and variables → Actions`
+## 사용자 액션
 
-새 Repository Secret:
-- Name: `DATA_GO_KR_SERVICE_KEY`
-- Value: 공공데이터포털 **Decoding 인증키**
+| 지금 / 이후 | 해주실 일 | 풀리는 작업 |
+|---|---|---|
+| 지금 | 성공한 포털 요청 URL에서 키 값을 제거하고 공유 | 클라우드 code10의 경로·파라미터 대조 |
+| 지속 사용 전 | 클라우드 Secret 값 안전 등록·네트워크 설정 적용. GitHub smoke를 쓰면 Actions Secret 별도 등록 | 재시작 후 API 키 재사용·공식 자료 접근 |
+| 경계 상세 조사 재개 | 초안에 추가한 `www.vworld.kr` 공식 문서 도메인 설정 적용 | 허용 경계 후보의 실제 레이어·조건·좌표계·키 요건 확인 |
+| 실사용 검증 때 | 실제 물건2~3개와 알고 있는 자금·분담금·가격 조건 | Finance/UX 검산·동선 검증 |
+| G3 이후 | 소수 지인의 사용 피드백 | G4 이해도·사용성 |
 
-그 다음:
+키를 채팅·커밋·로그에 추가로 공유하지 않는다. API 활용신청은 사용자 완료로 기록했으며 재신청을 요구하지 않는다. 네트워크·설치·시작 지침은 환경 초안에 저장하고 적용·실행·게시와 구분한다.
 
-`Actions → Live Data Smoke → Run workflow`
+## 공동 G2 종료조건
 
-성공/실패 여부만 ChatGPT에 알려준다. 키 자체는 전달하지 않는다.
+- [ ] 같은 대표5구역 공식 단계·근거·거래·건물 연결
+- [ ] 검토된 경계 source/kind/이용조건으로 지도 연결
+- [ ] 실제 사실의 출처·관찰일/효력일·검토상태·라이선스 계보
+- [x] 실구역 수동 물건 입력·저장·수정·선택 비교
+- [x] 사용자 가정 계산·미확인 처리·실구역 검색·브라우저 동선 검증
+- [x] 실제 서울25구 목록 전수 수집·원천 행 parser·변화 후보 QA
+- [ ] 고시/첨부 parser·검토된 사실 저장·UI 반영 QA
+- [ ] G2 통합 통과 후 실제 매물 G3
 
-## AI / CODEX NEXT
-
-사용자 Secret과 병렬로 진행:
-1. Update Watcher baseline
-2. 정보몽땅 row parser
-3. 서울시 notice parser
-4. 자치구 notice adapter registry
-5. deep target 원문 보강
-6. 서울플랜+ SHP parser
-7. real data UI provenance
-8. key 확인 후 RTMS/Building HUB live integration
-9. GATE 2 QA
-10. GATE 3 actual listing dogfood
-
-## 금지
-
-- 전국 확장
-- 비공식 포털 매물 크롤링
-- 자동 투자추천
-- 자동 법률판단
-- 원문 없는 날짜 추정
-- 추정 경계를 OFFICIAL로 표시
-- RED source를 상용판 정본으로 사용
+전국 확장·비공식 포털 매물 크롤링·자동 투자추천·자동 법률판단·원문 없는 날짜 추정·RED 원천 상용 정본 사용은 진행하지 않는다.

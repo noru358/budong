@@ -555,116 +555,51 @@ flowchart TD
 
 # 14. CURRENT
 
-현재 상태(2026-09-29):
+현재 상태(2026-10-02, Asia/Seoul): **G0 완료, G1 기반 위에 개인 수동입력 V1 구현·검증, G2 실데이터 통합 진행 중.**
 
-## Gate
+5개 부서 담당이 병렬 구현했고 PM/QA가 서버·계약·검증을 통합했다.
 
-- **GATE 0 DONE** — V1 계약/범위/법적 용어 원칙 Lock.
-- **GATE 1 DONE** — Fixture 5화면 + Search + Finance + QA.
-- **GATE 2 IN PROGRESS** — 실제 서울 데이터 + provenance + 자동 업데이트 체계.
+| 부서 | 이번 구현 |
+|---|---|
+| Legal | src/legal.mjs: 공식 용어·근거 구분, 5구역6고시 정보·본문 재검토, 고정 상세주소·정정 연결·검토일 표시 |
+| Data | API 인증키 단일 인코딩, XML/JSON gateway 오류·HTTP 실패 원인 보존, 타임아웃·키 제거, 두 서비스 독립 스모크 |
+| Finance | src/finance.mjs: 실제 입력·날짜·부채 검증, 자금시간표·부족일, 기준/낙관/보수 가정 |
+| Search | src/search.mjs: 실제 44구역 검색·안전 축약명·오타·과잉 주소 매칭 방지, 검증된 역 자료만 허용 |
+| UX | 수동 물건 입력·초안 저장·수정·삭제·선택 비교·재방문·JSON 내보내기, 실제 구역 문맥 유지 |
+| UX / Design | 디자인팀 공동 개선: 숫자 정렬·모바일 표 첫 열·44px 터치 영역·대비·포커스·한국어 오류 연결·만원/원 보조표시 |
+| Data/QA 업데이트 | 주기·실패/누적 보존·원자쓰기, 실제 목록 parser, 서울25구/1,184개 사업장 baseline·원문 보존 |
+| 통합 | Node 개인 서버, 서버측 키 사용 API, CSP·비공개 파일 차단, 실제 브라우저 동선 검증 |
 
-## GATE 2 현재 구현
+기본 44구역은 2026-09-28 관찰값이며, deep 10개 중 5구역의 공식확인 사건6건은 2026-10-02에 제목·번호·날짜·HTML 본문을 재검토했다. 첨부 전체·후속 최신단계·개별 권리는 미확인이다. 지도 경계 파일은 미연결이며 추정 자료를 공식 경계로 표시하지 않는다.
 
-- `data/seoul_seed_v1.json`: 실제 서울 정비사업 44개 shallow seed
-- `data/deep_validation_v1.json`: deep validation 10개
-- RTMS / Building HUB adapter 구현
-- 홈/검색/구역 상세은 실제 seed 기반
-- 물건 분석은 아직 fixture
-- 서울플랜+ SHP는 개인 V1 `ADMIN_CANDIDATE`, 상용 lineage `RED`
-- 공식 경계 전 지도는 FAIL-CLOSED
+현재 저장은 브라우저 localStorage이며 DB schema는 아직 런타임에 연결하지 않았다. 가상 계산 데모는 별도 화면으로 명시한다. 실제 사용자는 입력한 물건을 저장하고 선택 비교할 수 있다. 미래 시나리오는 사용자 가정이며 자동 투자추천·가격 추정·법률판단을 하지 않는다.
 
-### Legal / provenance
-- 정보몽땅 현재단계 = observed snapshot
-- 공식 고시/공고 = PROJECT_STAGE_EVENT의 법적 근거
-- 신탁/사업시행자 = PROJECT_GOVERNANCE_EVENT
-- 권리·규제 = RIGHTS_REGULATION_EVENT
-- 고시 정정 = correction event
-- unknown = NEEDS_REVIEW
+Node 22.23.3 자동 테스트117개 전부 통과. 브라우저 검색→근거재확인 표시→입력→저장→계산→비교→복원→삭제·모바일 검증도 통과. PROJECT_DASHBOARD.md 및 docs/VALIDATION_V1.md 참조.
 
-### Update pipeline — 신규 반영
-`docs/UPDATE_PIPELINE_V1.md`
+사용자가 맥에서 Codex와 공공데이터포털 목록을 열었으나 이 대화의 실행도구는 Linux클라우드이며 맥 터미널/화면 연결 및 node_repl 제공이 없다. 직접 조작으로 확인하지 않았다. 최신 실행 ZIP은 /workspace/budong-personal-v1.zip, Mac 실행 안내는 docs/MAC_START.md. ZIP을 별도 폴더에 풀어 전체 브라우저 동선을 검증했다. 맥에서 Node22/24로 npm run serve를 실행한 뒤 localhost4173의 /web/에 접속한다. 사용자 맥에서의 실행·API·브라우저는 아직 미검증이다.
 
-```text
-Sensor
-→ Snapshot/API
-→ Diff
-→ Change Candidate
-→ Parser / Entity Matching
-→ Official Evidence Verification
-→ Assertion/Event
-→ UI Current State
-```
+API 실제 검증: 사용자 제공 키는 임시 프로세스에만 주입해 호출했다. 클라우드 RTMS·Building HUB는 HTTP400 / code10 INVALID_REQUEST_PARAMETER_ERROR로 실패. 사용자 포털의 종로구11110/202401 미리보기는 000/OK로 성공(전체20건/반환10건)했다. 키 무효로 단정하지 않으며 성공 URL과 클라우드 전송을 대조해야 한다. 프록시 전송 적용 후 공식 포털 Swagger는 HTTP200이며 현재 주소·필수 파라미터와 일치한다. 두 서비스 필수 파라미터만으로도 code10이다. Building v2 대조 경로는 code12 서비스없음이므로 기본 endpoint를 바꾸지 않았다. 임시 키를 저장소·지침·로그에 저장하지 않았다.
 
-구현:
-- `src/updater/core.mjs`: snapshot fingerprint / structured diff / candidate / official promotion gate
-- `config/update_sensors.json`
-  - 정보몽땅 25개 자치구 daily watch
-  - 서울플랜+ weekly version watch
-  - RTMS / Building HUB sensor registry
-  - 서울시+25개 구청 notice parser registry placeholder
-- `scripts/run_update_watch.mjs`: 실제 HTTP snapshot watcher
-- `.github/workflows/update-watch.yml`
-  - 매일 07:20 KST
-  - 첫 실행 baseline
-  - 이후 변경 candidate artifact 생성
-  - main 자동수정 없음
-- discovery source의 변화는 법적 사실을 자동 덮어쓰지 못함.
-
-### Project status board
-- `PROJECT_DASHBOARD.md`를 현행 상태판으로 추가.
-- Gate / 구현현황 / Gate2 Remaining / USER ACTION / AI-CODEX NEXT를 한 장에서 본다.
-
-## 아직 완료되지 않음
-
-- DATA_GO_KR_SERVICE_KEY 실제 주입
-- Live Data Smoke 실제 성공 확인
-- 5개 deep target RTMS + Building HUB 실제 연결
-- 정보몽땅 row-level parser
-- 서울시 + 25개 구청 고시·공고 parser
-- PDF/HWP 원문 parser
-- 서울플랜+ SHP 실제 파일 파싱/지도 연결
-- 실제 물건 입력/dogfood
-- 지인 usability test
-
----
+정보몽땅25구/1,184개 사업장/26페이지와 경계 catalog 실제 수집·상태 무결성 검증 완료. 최종 필수오류0·최초 baseline 후보0·공식 사실 및 앱 seed 자동변경0. 원문·상태·보고서는 /workspace/.budong-onboarding/update-watch-live-20261002/에 보존했다. 서울플랜+ 202609 경계자료는 공공누리4(상업 이용·변경 금지), 법적 효력 없음. 파일 다운로드 프록시403과 별개로 변환·지도 이용허락이 미확인이라 변환·배포를 진행하지 않는다. 대체 WMS/WFS 카탈로그15058773/15123895는 허용 이용조건 후보지만 실제 정비구역 레이어·좌표계·키 요건은 미확인. 공식 문서 www.vworld.kr을 환경 초안에 추가했으나 현재 프록시 CONNECT403으로 상세 조사 차단. docs/VALIDATION_V1.md 참고.
 
 # 15. NEXT
 
-## A. 사용자 직접 액션 — 1개 세트
+부서별 병렬 작업을 유지한다. API 외부 조건이 독립 가능한 작업의 착수를 막지 않는다.
 
-`noru358/budong → Settings → Secrets and variables → Actions → New repository secret`
+| 부서 | 다음 작업 |
+|---|---|
+| Legal | 대표5구역 후속 최신고시·첨부 전체·개별 권리 검토, 사업유형·시행방식별 사전 보강 |
+| Data | 포털 성공 요청 URL 대조·live smoke 성공, 동일한5구역 거래·건물 실제 연결, 고시/첨부 adapter·허용 경계 원천 확보 |
+| Finance | 실제 물건 2~3개 검산·가정 검증, 현재 지원하지 않는 중간 대출상환·보증금 반환 모델은 필요가 확인되면 계약 보강 |
+| Search | 검토된 옛 명칭·역/주소 연결, 실제 사용자 검색어 품질 평가 |
+| UX | 검토된 경계 수집 후 지도 연결, 실제 데이터·사용자 입력 결합, 본인 반복사용 동선 보정 |
+| Data/QA 업데이트 | 전수 baseline 다음 주기 변화 관찰·후보 매칭·공식 검토/승인→사실 저장→UI 연결 |
+| PM/QA | 최소5구역 G2 QA, 본인 실제 매물 G3, 소수지인 G4, 경쟁제품 동일 과제 비교 |
 
-- Name: `DATA_GO_KR_SERVICE_KEY`
-- Value: 공공데이터포털 일반 인증키 **Decoding**
-
-그 다음:
-
-`Actions → Live Data Smoke → Run workflow → Run workflow`
-
-결과만 “성공” 또는 “실패”라고 알려준다. 키 자체는 채팅/README/Issue/Commit에 넣지 않는다.
-
-## B. AI / Codex 병렬 작업
-
-Secret과 무관하게:
-1. 정보몽땅 row parser
-2. 서울시 notice parser
-3. 25개 구청 notice adapter registry
-4. PDF/HWP text extraction
-5. entity matching
-6. deep target 원문 보강
-7. 서울플랜+ SHP parser
-8. “오늘 바뀐 구역” UI
-
-Secret 주입 후:
-9. RTMS live smoke
-10. Building HUB live smoke
-11. 최소 5개 deep target 실제 거래/건물 연결
-12. source lineage + QA
-13. GATE 2 종료판정
-14. 실제 매물 dogfood → GATE 3
+사용자: 성공한 포털 요청 URL에서 인증키 값만 제거해 경로·파라미터 제공. 지속 사용을 위한 키는 클라우드 환경 설정에 안전하게 등록하며 GitHub Actions Secret은 별개다. 실제 물건 2~3개 제공은 실사용 검증 때 필요하다. 키 자체를 추가로 채팅에 공유하지 않는다.
 
 ---
 
 # 16. 다음 세션 첫 지시문
 
-> `README.md`, `REDEVELOPMENT_HANDOFF_v0.2_20260928.md`, `V1_PROTOTYPE_CONTRACT.md`, `PROJECT_DASHBOARD.md`를 정본/현행 상태로 읽어. GATE 0·1은 완료했고 GATE 2 실제 데이터 통합 중이다. `docs/UPDATE_PIPELINE_V1.md`, `config/update_sensors.json`, `src/updater/core.mjs`, `scripts/run_update_watch.mjs`도 읽어. 업데이트는 Sensor→Snapshot→Diff→Candidate→Official Verification→Assertion 원칙을 유지한다. 정보몽땅/서울플랜+ 변화만으로 법적 사실을 OFFICIAL_CONFIRMED로 자동 승격하지 않는다. 사용자가 DATA_GO_KR_SERVICE_KEY를 주입했다면 Live Data Smoke 결과부터 확인하고 실제 5개 deep target 데이터 연결을 진행한다.
+> `README.md`, `REDEVELOPMENT_HANDOFF_v0.2_20260928.md`, `V1_PROTOTYPE_CONTRACT.md`, `PROJECT_DASHBOARD.md`, `docs/VALIDATION_V1.md`를 읽어. 2026-10-02 부서별 병렬 구현·통합으로 수동입력·저장·비교 개인 V1은 검증했고 G2 실데이터 통합은 진행 중이다. API는 사용자 포털 성공과 클라우드 code10 실패의 요청 URL 대조부터 이어가. `docs/UPDATE_PIPELINE_V1.md`, `config/update_sensors.json`, `src/updater/core.mjs`, `scripts/run_update_watch.mjs`도 읽어. 업데이트는 Sensor→Snapshot→Diff→Candidate→Official Verification→Assertion 원칙을 유지한다. 정보몽땅/서울플랜+ 변화만으로 법적 사실을 OFFICIAL_CONFIRMED로 자동 승격하지 않는다. 사용자가 DATA_GO_KR_SERVICE_KEY를 주입했다면 Live Data Smoke 결과부터 확인하고 실제 5개 deep target 데이터 연결을 진행한다.

@@ -21,7 +21,24 @@
           "notice_number": "서울특별시 고시 제2025-178호",
           "source_id": "LAND_USE_EUM_GOV_NOTICE",
           "source_locator": "https://www.eum.go.kr/web/gs/gv/gvGosiDet.jsp?seq=610123",
-          "certainty": "OFFICIAL_CONFIRMED"
+          "certainty": "OFFICIAL_CONFIRMED",
+          "evidence_review": {
+            "verified_locator": "https://www.eum.go.kr/web/gs/gv/gvGosiDet.jsp?seq=610123",
+            "body_sha256": "cac1c3a807736c8d74921ca4449d2c640d97f491b25b78778ec437e587426792",
+            "body_hash_representation": "original response bytes",
+            "response_charset": "euc-kr",
+            "http_status": 200,
+            "status": "NOTICE_METADATA_AND_BODY_CHECKED",
+            "reviewed_at": "2026-10-01T16:19:00.052436Z",
+            "checked_fields": {
+              "event_name_official": "상도15구역 주택정비형 재개발사업 정비계획 결정 및 정비구역 지정, 지구단위계획(구역) 결정 및 지형도면 고시",
+              "notice_number": "서울특별시 고시 제2025-178호",
+              "event_date": "2025-04-03"
+            },
+            "attachments_reviewed": false,
+            "latest_current_stage_verified": false,
+            "rights_eligibility_verified": false
+          }
         }
       ],
       "governance_events": [
@@ -71,7 +88,24 @@
           "notice_number": "서울특별시 용산구 고시 제2026-55호",
           "source_id": "LAND_USE_EUM_GOV_NOTICE",
           "source_locator": "https://www.eum.go.kr/web/gs/gv/gvGosiDet.jsp?seq=637767",
-          "certainty": "OFFICIAL_CONFIRMED"
+          "certainty": "OFFICIAL_CONFIRMED",
+          "evidence_review": {
+            "verified_locator": "https://www.eum.go.kr/web/gs/gv/gvGosiDet.jsp?seq=637767",
+            "body_sha256": "f37cc3d3cc02118f9fd856130320ca3fae8f8a5f16ee62231bff01ffb1ba12ea",
+            "body_hash_representation": "original response bytes",
+            "response_charset": "euc-kr",
+            "http_status": 200,
+            "status": "NOTICE_METADATA_AND_BODY_CHECKED",
+            "reviewed_at": "2026-10-01T16:19:00.052436Z",
+            "checked_fields": {
+              "event_name_official": "한남5재정비촉진구역 주택재개발정비사업 사업시행인가 고시",
+              "notice_number": "서울특별시 용산구 고시 제2026-55호",
+              "event_date": "2026-04-30"
+            },
+            "attachments_reviewed": false,
+            "latest_current_stage_verified": false,
+            "rights_eligibility_verified": false
+          }
         }
       ],
       "governance_events": [],
@@ -156,7 +190,26 @@
           "notice_number": "서울특별시 송파구 고시 제2026-90호",
           "source_id": "SONGPA_NOTICE_BOARD",
           "source_locator": "https://www.songpa.go.kr/www/selectGosiList.do?key=2776&not_ancmt_mgt_no=&pageIndex=12&searchCnd=all&searchKrwd=2026",
-          "certainty": "OFFICIAL_CONFIRMED"
+          "certainty": "OFFICIAL_CONFIRMED",
+          "evidence_review": {
+            "verified_locator": "https://www.songpa.go.kr/www/selectGosiData.do?key=2776&not_ancmt_mgt_no=33190",
+            "body_sha256": "1623bf4df0578970225afe4e0342ee04df633ab7ebd81bc7a14e3560c52a1f81",
+            "body_hash_representation": "decoded UTF-8 text",
+            "response_charset": "utf-8",
+            "http_status": 200,
+            "title_review_locator": "https://www.songpa.go.kr/www/selectGosiList.do?key=2776&searchCnd=SJ&pageIndex=1&searchKrwd=%EC%9E%A0%EC%8B%A45%EB%8B%A8%EC%A7%80",
+            "registered_pagination_locator_stale": true,
+            "status": "NOTICE_METADATA_AND_BODY_CHECKED",
+            "reviewed_at": "2026-10-01T16:19:00.052436Z",
+            "checked_fields": {
+              "event_name_official": "잠실5단지아파트 재건축정비사업 사업시행계획인가 고시",
+              "notice_number": "서울특별시 송파구 고시 제2026-90호",
+              "event_date": "2026-07-09"
+            },
+            "attachments_reviewed": false,
+            "latest_current_stage_verified": false,
+            "rights_eligibility_verified": false
+          }
         },
         {
           "event_type_code": "NOTICE_CORRECTION",
@@ -165,7 +218,27 @@
           "notice_number": "서울특별시 송파구 고시 제2026-99호",
           "source_id": "SONGPA_NOTICE_BOARD",
           "source_locator": "https://www.songpa.go.kr/www/selectGosiList.do?key=2776&not_ancmt_se_code=&pageIndex=11",
-          "certainty": "OFFICIAL_CONFIRMED"
+          "certainty": "OFFICIAL_CONFIRMED",
+          "evidence_review": {
+            "verified_locator": "https://www.songpa.go.kr/www/selectGosiData.do?key=2776&not_ancmt_mgt_no=33512",
+            "body_sha256": "5a5c8d825a1c24d732e1a78de306a6ecf4dffe01c43fd55869ea26fb3768b393",
+            "body_hash_representation": "decoded UTF-8 text",
+            "response_charset": "utf-8",
+            "http_status": 200,
+            "title_review_locator": "https://www.songpa.go.kr/www/selectGosiList.do?key=2776&searchCnd=SJ&pageIndex=1&searchKrwd=%EC%9E%A0%EC%8B%A45%EB%8B%A8%EC%A7%80",
+            "registered_pagination_locator_stale": true,
+            "corrects_notice_number": "서울특별시 송파구 고시 제2026-90호",
+            "status": "NOTICE_METADATA_AND_BODY_CHECKED",
+            "reviewed_at": "2026-10-01T16:19:00.052436Z",
+            "checked_fields": {
+              "event_name_official": "잠실5단지아파트 재건축정비사업 사업시행계획인가(정정) 고시",
+              "notice_number": "서울특별시 송파구 고시 제2026-99호",
+              "event_date": "2026-08-20"
+            },
+            "attachments_reviewed": false,
+            "latest_current_stage_verified": false,
+            "rights_eligibility_verified": false
+          }
         }
       ],
       "governance_events": [],
@@ -189,7 +262,24 @@
           "notice_number": "서울특별시 고시 제2025-420호",
           "source_id": "LAND_USE_EUM_GOV_NOTICE",
           "source_locator": "https://www.eum.go.kr/web/gs/gv/gvGosiDet.jsp?seq=618080",
-          "certainty": "OFFICIAL_CONFIRMED"
+          "certainty": "OFFICIAL_CONFIRMED",
+          "evidence_review": {
+            "verified_locator": "https://www.eum.go.kr/web/gs/gv/gvGosiDet.jsp?seq=618080",
+            "body_sha256": "7fc9ec95746b137d4a629abbfaacb10da8c58f6014278fa7d3a7e4a2cfac6f16",
+            "body_hash_representation": "original response bytes",
+            "response_charset": "euc-kr",
+            "http_status": 200,
+            "status": "NOTICE_METADATA_AND_BODY_CHECKED",
+            "reviewed_at": "2026-10-01T16:19:00.052436Z",
+            "checked_fields": {
+              "event_name_official": "목동10단지 아파트 재건축 정비사업 정비계획 수립 및 정비구역 지정, 서울목동지구 택지개발사업 지구단위계획 결정(변경) 및 특별계획구역 10 세부개발계획 수립·지형도면 고시",
+              "notice_number": "서울특별시 고시 제2025-420호",
+              "event_date": "2025-07-31"
+            },
+            "attachments_reviewed": false,
+            "latest_current_stage_verified": false,
+            "rights_eligibility_verified": false
+          }
         }
       ],
       "governance_events": [],
@@ -237,7 +327,24 @@
           "notice_number": "서울특별시 고시 제2019-237호",
           "source_id": "LAND_USE_EUM_GOV_NOTICE",
           "source_locator": "https://www.eum.go.kr/web/gs/gv/gvGosiDet.jsp?seq=45973",
-          "certainty": "OFFICIAL_CONFIRMED"
+          "certainty": "OFFICIAL_CONFIRMED",
+          "evidence_review": {
+            "verified_locator": "https://www.eum.go.kr/web/gs/gv/gvGosiDet.jsp?seq=45973",
+            "body_sha256": "2c4a8babbf3c143bd9b87ccd474ec169008a60cb4f3ad9e971c742888f0b7c3c",
+            "body_hash_representation": "original response bytes",
+            "response_charset": "euc-kr",
+            "http_status": 200,
+            "status": "NOTICE_METADATA_AND_BODY_CHECKED",
+            "reviewed_at": "2026-10-01T16:19:00.052436Z",
+            "checked_fields": {
+              "event_name_official": "독바위역세권 도시정비형 재개발정비구역 지정 - 독바위 지구단위계획 결정(변경) 및 지형도면 고시",
+              "notice_number": "서울특별시 고시 제2019-237호",
+              "event_date": "2019-07-25"
+            },
+            "attachments_reviewed": false,
+            "latest_current_stage_verified": false,
+            "rights_eligibility_verified": false
+          }
         },
         {
           "event_type_code": "IMPLEMENTATION_PLAN_APPROVAL",

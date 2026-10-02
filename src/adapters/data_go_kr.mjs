@@ -1,4 +1,5 @@
 import {requireSecret, assertNoSecretLikeFields} from "./contracts.mjs";
+import {environmentFetch} from "../http_transport.mjs";
 
 export const ENDPOINTS=Object.freeze({
   RTMS_MULTIFAMILY_SALE:"https://apis.data.go.kr/1613000/RTMSDataSvcRHTrade/getRTMSDataSvcRHTrade",
@@ -23,13 +24,49 @@ function positiveInt(value,name){
   if(!Number.isInteger(n)||n<1) throw new Error(name+" must be a positive integer");
   return n;
 }
-function keyFrom(env){return requireSecret(env,"DATA_GO_KR_SERVICE_KEY")}
+// The portal offers both Encoding and Decoding keys. Decode the former once;
+// URLSearchParams then applies the single transport encoding (literal + stays +).
+export function normalizeServiceKey(value){
+  const key=requireSecret({DATA_GO_KR_SERVICE_KEY:value},"DATA_GO_KR_SERVICE_KEY");
+  if(!/%[0-9a-f]{2}/i.test(key)) return key;
+  try{return decodeURIComponent(key);}catch{throw new Error("Invalid DATA_GO_KR_SERVICE_KEY encoding");}
+}
+function keyFrom(env){return normalizeServiceKey(requireSecret(env,"DATA_GO_KR_SERVICE_KEY"));}
+
+export function sanitizeApiError(error,{env=process.env}={}){
+  let message=String(error?.message??error??"Unknown API error");
+  const supplied=typeof env?.DATA_GO_KR_SERVICE_KEY==="string"?env.DATA_GO_KR_SERVICE_KEY.trim():"";
+  const variants=new Set();
+  if(supplied){
+    variants.add(supplied);
+    try{variants.add(normalizeServiceKey(supplied));}catch{}
+    for(const value of [...variants]){
+      variants.add(encodeURIComponent(value));
+      variants.add(encodeURIComponent(encodeURIComponent(value)));
+    }
+  }
+  for(const value of [...variants].sort((a,b)=>b.length-a.length)) message=message.split(value).join("[REDACTED]");
+  // Provider and fetch messages can echo entire request URLs. Omit them entirely.
+  message=message.replace(/https?:\/\/[^\s<>"']+/gi,"[URL REDACTED]")
+    .replace(/(?:serviceKey|service%4bey|api_key|token)\s*(?:=|:|%3[dD])\s*[^\s&,<>"']+/gi,"serviceKey=[REDACTED]");
+  return message.replace(/[\r\n\t]+/g," ").slice(0,300);
+}
+
+function publicEndpoint(endpoint){
+  const url=new URL(endpoint);
+  if(url.protocol!=="https:"||url.hostname!=="apis.data.go.kr"||url.username||url.password){
+    throw new Error("API endpoint must use https://apis.data.go.kr");
+  }
+  return url;
+}
 
 export function buildRtmsUrl({env=process.env,endpoint=ENDPOINTS.RTMS_MULTIFAMILY_SALE,lawdCd,dealYmd,pageNo=1,numOfRows=1000}){
-  const url=new URL(endpoint);
+  const url=publicEndpoint(endpoint);
+  const month=checkCode(dealYmd,6,"DEAL_YMD");
+  if(Number(month.slice(4))<1||Number(month.slice(4))>12||Number(month.slice(0,4))<1)throw new Error("DEAL_YMD must be a valid calendar month");
   url.searchParams.set("serviceKey",keyFrom(env));
   url.searchParams.set("LAWD_CD",checkCode(lawdCd,5,"LAWD_CD"));
-  url.searchParams.set("DEAL_YMD",checkCode(dealYmd,6,"DEAL_YMD"));
+  url.searchParams.set("DEAL_YMD",month);
   url.searchParams.set("pageNo",String(positiveInt(pageNo,"pageNo")));
   url.searchParams.set("numOfRows",String(positiveInt(numOfRows,"numOfRows")));
   return url;
@@ -39,7 +76,8 @@ export function buildBuildingHubUrl({
   env=process.env,endpoint=ENDPOINTS.BUILDING_HUB_TITLE,
   sigunguCd,bjdongCd,platGbCd="0",bun,ji="0000",pageNo=1,numOfRows=100
 }){
-  const url=new URL(endpoint);
+  const url=publicEndpoint(endpoint);
+  if(!["0","1","2"].includes(String(platGbCd)))throw new Error("platGbCd must be 0, 1 or 2");
   url.searchParams.set("serviceKey",keyFrom(env));
   url.searchParams.set("sigunguCd",checkCode(sigunguCd,5,"sigunguCd"));
   url.searchParams.set("bjdongCd",checkCode(bjdongCd,5,"bjdongCd"));
@@ -53,21 +91,79 @@ export function buildBuildingHubUrl({
 }
 
 const XML_ENTITIES=Object.freeze({"&amp;":"&","&lt;":"<","&gt;":">","&quot;":'"',"&apos;":"'"});
-const decodeXml=s=>String(s??"").replace(/&(amp|lt|gt|quot|apos);/g,m=>XML_ENTITIES[m]??m).trim();
+const decodeXml=s=>String(s??"").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,"$1")
+  .replace(/&#(x[0-9a-f]+|\d+);/gi,(match,n)=>{
+    const code=n.toLowerCase().startsWith("x")?parseInt(n.slice(1),16):Number(n);
+    return code>=0&&code<=0x10ffff?String.fromCodePoint(code):match;
+  })
+  .replace(/&(amp|lt|gt|quot|apos);/g,m=>XML_ENTITIES[m]??m).trim();
 
-export function parseFlatXmlItems(xml){
-  const text=String(xml??"");
-  const headerCode=(text.match(/<resultCode>([\s\S]*?)<\/resultCode>/i)||[])[1];
-  const headerMsg=(text.match(/<resultMsg>([\s\S]*?)<\/resultMsg>/i)||[])[1];
-  if(headerCode && !["000","00"].includes(decodeXml(headerCode))){
-    throw new Error("data.go.kr error "+decodeXml(headerCode)+": "+decodeXml(headerMsg));
+export class PublicApiError extends Error {
+  constructor(service,code,message){
+    const safeCode=/^\d{1,3}$/.test(String(code))?String(code):"UNKNOWN";
+    super(service+" provider error "+safeCode+": "+message);
+    this.name="PublicApiError";
+    this.providerCode=safeCode;
+    this.category=safeCode==="10"?"INVALID_REQUEST":/^(20|21|22|30|31|32|33)$/.test(safeCode)?"AUTH_OR_ACCESS":"PROVIDER";
   }
+}
+
+function assertXmlDocument(text){
+  if(/<!DOCTYPE|<!ENTITY/i.test(text)) throw new Error("Unsupported API XML document");
+  const clean=text.replace(/<!--([\s\S]*?)-->/g,"").replace(/<!\[CDATA\[[\s\S]*?\]\]>/g,"").replace(/<\?[\s\S]*?\?>/g,"").trim();
+  const stack=[];
+  let roots=0;
+  let end=0;
+  for(const match of clean.matchAll(/<[^>]*>/g)){
+    if(clean.slice(end,match.index).includes("<")) throw new Error("Malformed API XML response");
+    if(!stack.length&&clean.slice(end,match.index).trim()) throw new Error("Malformed API XML response");
+    const tag=match[0];
+    const parsed=tag.match(/^<(\/?)([\w:-]+)(?:\s[^<>]*)?\s*(\/?)>$/);
+    if(!parsed)throw new Error("Malformed API XML response");
+    const [,closing,name]=parsed;
+    if(closing){if(stack.pop()!==name)throw new Error("Malformed API XML response");}
+    else{
+      if(!stack.length) roots++;
+      if(!/\/\s*>$/.test(tag))stack.push(name);
+    }
+    end=match.index+tag.length;
+  }
+  if(stack.length||roots!==1||clean.slice(end).trim())throw new Error("Malformed API XML response");
+}
+
+function xmlValue(text,tag){return (text.match(new RegExp("<"+tag+"(?:\\s[^>]*)?>([\\s\\S]*?)</"+tag+">","i"))||[])[1];}
+
+export function throwXmlProviderError(text,{service="data.go.kr",env=process.env}={}){
+  assertXmlDocument(String(text??""));
+  if(/<cmmMsgHeader(?:\s|>)/i.test(text)){
+    const code=decodeXml(xmlValue(text,"returnReasonCode"))||"UNKNOWN";
+    const msg=decodeXml(xmlValue(text,"returnAuthMsg")||xmlValue(text,"errMsg"))||"Gateway rejected request";
+    throw new PublicApiError(service,code,sanitizeApiError(msg,{env}));
+  }
+  const code=decodeXml(xmlValue(text,"resultCode"));
+  if(!code)throw new Error(service+" missing provider resultCode");
+  if(!["000","00","0"].includes(code)){
+    throw new PublicApiError(service,code,sanitizeApiError(decodeXml(xmlValue(text,"resultMsg"))||"Provider rejected request",{env}));
+  }
+}
+
+export function parseFlatXmlItems(xml,{env=process.env,pageNo=1,numOfRows=1000}={}){
+  const text=String(xml??"");
+  throwXmlProviderError(text,{env});
+  if(!/<response(?:\s|>)/i.test(text)||!/<header(?:\s|>)/i.test(text)||!/<body(?:\s|>)/i.test(text))throw new Error("Malformed RTMS response envelope");
+  const body=xmlValue(text,"body");
+  if(!/<items(?:\s|\/?>)/i.test(body)&&decodeXml(xmlValue(body,"totalCount"))!=="0")throw new Error("RTMS response missing items");
   const items=[];
-  for(const m of text.matchAll(/<item>([\s\S]*?)<\/item>/gi)){
+  const content=xmlValue(body,"items")??"";
+  if(content.replace(/<item>[\s\S]*?<\/item>/gi,"").trim())throw new Error("Malformed RTMS items");
+  for(const m of content.matchAll(/<item>([\s\S]*?)<\/item>/gi)){
     const row={};
     for(const f of m[1].matchAll(/<([A-Za-z0-9_]+)>([\s\S]*?)<\/\1>/g)) row[f[1]]=decodeXml(f[2]);
+    if(!Object.keys(row).length)throw new Error("Malformed RTMS item");
     items.push(row);
   }
+  const total=Number(decodeXml(xmlValue(body,"totalCount")));
+  if(!items.length&&total>0&&(pageNo-1)*numOfRows<total)throw new Error("RTMS response reports data but has no items");
   return items;
 }
 
@@ -108,13 +204,38 @@ export function normalizeRtmsTradeItem(raw,{sourceId="MOLIT_RTMS_MULTIFAMILY_SAL
   return out;
 }
 
-export function extractBuildingHubItems(json){
+function throwJsonProviderError(json,{service="data.go.kr",env=process.env}={}){
+  const gateway=json?.OpenAPI_ServiceResponse?.cmmMsgHeader??json?.cmmMsgHeader;
+  if(gateway){
+    throw new PublicApiError(service,String(gateway.returnReasonCode??"UNKNOWN"),
+      sanitizeApiError(String(gateway.returnAuthMsg||gateway.errMsg||"Gateway rejected request"),{env}));
+  }
   const header=json?.response?.header;
   const code=String(header?.resultCode??"").trim();
-  if(code && !["00","000"].includes(code)) throw new Error("Building HUB error "+code+": "+String(header?.resultMsg??""));
-  const items=json?.response?.body?.items?.item;
-  if(items==null)return [];
-  return Array.isArray(items)?items:[items];
+  if(code&&!["00","000","0"].includes(code)){
+    throw new PublicApiError(service,code,sanitizeApiError(String(header?.resultMsg??"Provider rejected request"),{env}));
+  }
+}
+
+export function extractBuildingHubItems(json,{env=process.env,pageNo=1,numOfRows=100}={}){
+  throwJsonProviderError(json,{service:"Building HUB",env});
+  const header=json?.response?.header;
+  const code=String(header?.resultCode??"").trim();
+  if(!code)throw new Error("Building HUB missing provider resultCode");
+  if(!["00","000","0"].includes(code)) throw new PublicApiError("Building HUB",code,sanitizeApiError(String(header?.resultMsg??"Provider rejected request"),{env}));
+  const body=json?.response?.body;
+  if(!body||typeof body!=="object"||Array.isArray(body))throw new Error("Malformed Building HUB body");
+  if(!Object.hasOwn(body,"items")&&String(body.totalCount)!=="0")throw new Error("Building HUB response missing items");
+  if(body.items!==""&&body.items!=null&&(typeof body.items!=="object"||Array.isArray(body.items)))throw new Error("Malformed Building HUB items");
+  const items=body.items?.item;
+  if(items==null){
+    if(body.items&&typeof body.items==="object"&&Object.keys(body.items).length)throw new Error("Malformed Building HUB items");
+    if(Number(body.totalCount)>0&&(pageNo-1)*numOfRows<Number(body.totalCount))throw new Error("Building HUB response reports data but has no items");
+    return [];
+  }
+  const rows=Array.isArray(items)?items:[items];
+  if(rows.some(row=>!row||typeof row!=="object"||Array.isArray(row)||!Object.keys(row).length))throw new Error("Malformed Building HUB item");
+  return rows;
 }
 
 export function normalizeBuildingTitleItem(raw,{observedAt=new Date().toISOString()}={}){
@@ -143,21 +264,64 @@ export function normalizeBuildingTitleItem(raw,{observedAt=new Date().toISOStrin
   return out;
 }
 
-export async function fetchRtmsTrades({env=process.env,fetchImpl=fetch,...args}){
-  const url=buildRtmsUrl({env,...args});
-  const res=await fetchImpl(url,{headers:{accept:"application/xml,text/xml;q=0.9,*/*;q=0.1"}});
-  if(!res.ok)throw new Error("RTMS HTTP "+res.status);
-  const xml=await res.text();
-  return parseFlatXmlItems(xml).map(raw=>normalizeRtmsTradeItem(raw,{
-    sourceId:args.sourceId||"MOLIT_RTMS_MULTIFAMILY_SALE",
-    observedAt:args.observedAt||new Date().toISOString()
-  }));
+async function requestText({url,service,accept,fetchImpl,timeoutMs,env}){
+  const ms=positiveInt(timeoutMs,"timeoutMs");
+  const ctrl=new AbortController();
+  let timer;
+  try{
+    return await Promise.race([
+      (async()=>{
+        const res=await fetchImpl(url,{signal:ctrl.signal,headers:{accept}});
+        const text=await res.text();
+        if(!res.ok){
+          try{
+            if(text.trimStart().startsWith("<"))throwXmlProviderError(text,{service,env});
+            else throwJsonProviderError(JSON.parse(text),{service,env});
+          }catch(error){
+            if(error instanceof PublicApiError){error.httpStatus=res.status;throw error;}
+          }
+          throw new Error(service+" HTTP "+res.status);
+        }
+        return text;
+      })(),
+      new Promise((_,reject)=>{timer=setTimeout(()=>{
+        reject(new Error(service+" timeout after "+ms+"ms"));
+        ctrl.abort();
+      },ms);})
+    ]);
+  }catch(err){
+    if(err instanceof PublicApiError)throw err;
+    throw new Error(sanitizeApiError(err,{env}));
+  }finally{clearTimeout(timer);}
 }
 
-export async function fetchBuildingTitles({env=process.env,fetchImpl=fetch,...args}){
-  const url=buildBuildingHubUrl({env,...args,endpoint:args.endpoint||ENDPOINTS.BUILDING_HUB_TITLE});
-  const res=await fetchImpl(url,{headers:{accept:"application/json"}});
-  if(!res.ok)throw new Error("Building HUB HTTP "+res.status);
-  const json=await res.json();
-  return extractBuildingHubItems(json).map(raw=>normalizeBuildingTitleItem(raw,{observedAt:args.observedAt||new Date().toISOString()}));
+export async function fetchRtmsTrades({env=process.env,fetchImpl=environmentFetch,timeoutMs=20000,...args}){
+  try{
+    const url=buildRtmsUrl({env,...args});
+    const xml=await requestText({url,service:"RTMS",accept:"application/xml,text/xml;q=0.9,*/*;q=0.1",fetchImpl,timeoutMs,env});
+    return parseFlatXmlItems(xml,{env,pageNo:args.pageNo??1,numOfRows:args.numOfRows??1000}).map(raw=>normalizeRtmsTradeItem(raw,{
+      sourceId:args.sourceId||"MOLIT_RTMS_MULTIFAMILY_SALE",
+      observedAt:args.observedAt||new Date().toISOString()
+    }));
+  }catch(err){
+    if(err instanceof PublicApiError)throw err;
+    throw new Error(sanitizeApiError(err,{env}));
+  }
+}
+
+export async function fetchBuildingTitles({env=process.env,fetchImpl=environmentFetch,timeoutMs=20000,...args}){
+  try{
+    const url=buildBuildingHubUrl({env,...args,endpoint:args.endpoint||ENDPOINTS.BUILDING_HUB_TITLE});
+    const text=await requestText({url,service:"Building HUB",accept:"application/json,application/xml;q=0.9",fetchImpl,timeoutMs,env});
+    if(text.trimStart().startsWith("<")){
+      throwXmlProviderError(text,{service:"Building HUB",env});
+      throw new Error("Building HUB expected JSON success response; received XML");
+    }
+    let json;
+    try{json=JSON.parse(text);}catch{throw new Error("Malformed Building HUB JSON response");}
+    return extractBuildingHubItems(json,{env,pageNo:args.pageNo??1,numOfRows:args.numOfRows??100}).map(raw=>normalizeBuildingTitleItem(raw,{observedAt:args.observedAt||new Date().toISOString()}));
+  }catch(err){
+    if(err instanceof PublicApiError)throw err;
+    throw new Error(sanitizeApiError(err,{env}));
+  }
 }
