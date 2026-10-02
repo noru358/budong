@@ -49,7 +49,7 @@ export function getSourceUsePolicy(source = {}) {
 }
 
 export function listSourceUsePolicies(registry = {}) {
-  const sources = Array.isArray(registry) ? registry : registry.sources;
+  const sources = Array.isArray(registry) ? registry : registry?.sources;
   return (Array.isArray(sources) ? sources : []).map(getSourceUsePolicy);
 }
 

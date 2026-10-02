@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {validateProjectParcels,linkRowsToProject,summarizeProjectCoverage} from "../src/adapters/project_linkage.mjs";
+import {validateProjectParcels,linkRowsToProject,summarizeProjectCoverage,HANNAM5_REVIEWED_PARCEL_SAMPLE} from "../src/adapters/project_linkage.mjs";
 import {normalizeBuildingTitleItem} from "../src/adapters/data_go_kr.mjs";
 
 // Synthetic contract cases only; this is not an official real-project parcel list.
@@ -66,4 +66,16 @@ test("positive linkage counts cannot declare Gate2 or complete coverage",()=>{
   assert.equal(result.projects_with_both_sources,1);
   assert.equal(result.gate2_complete,false);
   assert.throws(()=>link([{...trade,api_key:"hidden"}]),/Secret-like/);
+});
+
+test("reviewed Hannam appendix sample preserves historical date and code evidence without current membership claim",()=>{
+  validateProjectParcels(HANNAM5_REVIEWED_PARCEL_SAMPLE);
+  const p=HANNAM5_REVIEWED_PARCEL_SAMPLE.parcels[0];
+  assert.equal(p.pnu.slice(0,10),p.code_evidence.legal_dong_code);
+  const result=linkRowsToProject({mapping:HANNAM5_REVIEWED_PARCEL_SAMPLE,kind:"BUILDING",rows:[{
+    ...building,sigungu_cd:"11170",bjdong_cd:"13200",bun:"0033",ji:"0013"
+  }]});
+  assert.equal(result.linked_row_count,1);assert.equal(result.sample_only,true);
+  assert.equal(result.links[0].membership_as_of,"2026-04-30");assert.equal(result.links[0].current_membership_verified,false);
+  assert.equal(result.project_coverage_complete,false);
 });

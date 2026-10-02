@@ -89,3 +89,15 @@ test("invalid all-page service parameters remain independently diagnosed",async(
     JSON.stringify({response:{header:{resultCode:"00"},body:{items:"",totalCount:0,pageNo:1,numOfRows:100}}}))});
   assert.equal(result.services[0].connectivity,"FAILED");assert.equal(result.services[1].connectivity,"OK");
 });
+
+test("Hannam query checks known historical sample without turning zero matches into current project verification",async()=>{
+  const options={allPages:true,lawdCd:"11170",sigunguCd:"11170",bjdongCd:"13200",bun:"0033",ji:"0013"};
+  const result=await runLiveDataSmoke({env,now,options,fetchImpl:async url=>reply(rtmsUrl(url)?
+    '<response><header><resultCode>000</resultCode></header><body><items/><totalCount>0</totalCount><pageNo>1</pageNo><numOfRows>100</numOfRows></body></response>':
+    JSON.stringify({response:{header:{resultCode:"00"},body:{items:{item:{mgmBldrgstPk:"TEST_PK",sigunguCd:"11170",bjdongCd:"13200",platGbCd:"0",bun:"0033",ji:"0013"}},totalCount:1,pageNo:1,numOfRows:100}}}))});
+  const [trade,building]=result.historical_parcel_sample_validation;
+  assert.equal(trade.linked_row_count,0);assert.equal(building.linked_row_count,1);assert.equal(building.rejected_row_count,0);
+  assert.equal(building.source_id,"MOLIT_BUILDING_HUB");assert.equal(building.membership_as_of,"2026-04-30");
+  assert.equal(building.scope,"HISTORICAL_REVIEWED_PARCEL_SAMPLE");assert.equal(building.current_membership_verified,false);
+  assert.equal(result.project_linkage_validated,false);assert.equal(building.legal_rights_verified,false);
+});

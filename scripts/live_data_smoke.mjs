@@ -1,6 +1,7 @@
 import {pathToFileURL} from "node:url";
 import {environmentFetch} from "../src/http_transport.mjs";
 import {fetchRtmsTrades,fetchBuildingTitles,fetchAllRtmsTrades,fetchAllBuildingTitles,sanitizeApiError,RTMS_SERVICES} from "../src/adapters/data_go_kr.mjs";
+import {HANNAM5_REVIEWED_PARCEL_SAMPLE,linkRowsToProject} from "../src/adapters/project_linkage.mjs";
 
 const FLAGS={
   "--deal-ymd":"dealYmd","--lawd-cd":"lawdCd","--sigungu-cd":"sigunguCd",
@@ -72,7 +73,26 @@ export async function runLiveDataSmoke({env=process.env,fetchImpl=environmentFet
       provider_code:error?.providerCode??null,http_status:error?.httpStatus??null,category:error?.category??"REQUEST_OR_RESPONSE",
       error:sanitizeApiError(error,{env})};
   });
+  const historicalSampleQuery=query[1].sigungu_cd==="11170"&&query[1].bjdong_cd==="13200"&&
+    query[1].plat_gb_cd==="0"&&query[1].bun==="0033"&&query[1].ji==="0013";
+  const historicalSample=historicalSampleQuery?requests.map((result,i)=>{
+    if(result.status!=="fulfilled")return {kind:i===0?"RTMS":"BUILDING",status:"UNVERIFIED"};
+    const rows=allPages?result.value.rows:result.value;
+    const linked=linkRowsToProject({mapping:HANNAM5_REVIEWED_PARCEL_SAMPLE,rows,kind:i===0?"RTMS":"BUILDING"});
+    const parcel=HANNAM5_REVIEWED_PARCEL_SAMPLE.parcels[0];
+    return {kind:linked.kind,queried_row_count:linked.queried_row_count,linked_row_count:linked.linked_row_count,
+      rejected_row_count:linked.unresolved.length,rejected_by_reason:linked.unresolved.reduce((out,row)=>{
+        out[row.reason]=(out[row.reason]??0)+1;return out;
+      },{}),scope:"HISTORICAL_REVIEWED_PARCEL_SAMPLE",project_id:linked.project_id,
+      source_id:i===0?service?.sourceId??null:"MOLIT_BUILDING_HUB",observed_at:observedAt,
+      parcel_pnu:parcel.pnu,membership_source_id:parcel.source_id,membership_source_locator:parcel.source_locator,
+      appendix_sha256:parcel.appendix_sha256,appendix_pdf_page:parcel.appendix_pdf_page,
+      membership_reviewed_at:parcel.reviewed_at,code_evidence:parcel.code_evidence,
+      membership_as_of:linked.membership_as_of,sample_only:true,current_membership_verified:false,
+      legal_rights_verified:false};
+  }):null;
   return {observed_at:observedAt,scope:allPages?"QUERY_COVERAGE_ONLY":"CONNECTIVITY_ONLY",project_linkage_validated:false,
+    ...(historicalSample?{historical_parcel_sample_validation:historicalSample}:{}),
     connectivity_ok:services.every(s=>s.connectivity==="OK"),
     ok:services.every(s=>s.connectivity==="OK"&&(!allPages||s.coverage==="COMPLETE")),services};
 }
