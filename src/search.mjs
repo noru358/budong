@@ -93,7 +93,7 @@ function scoreTerm(term, query) {
   } else {
     // An address typo must not silently resolve to another parcel. Station
     // proximity likewise cannot be inferred from a similar neighbourhood name.
-    if (!["canonical", "alias"].includes(term.kind) || query.length < 4 || query.endsWith("역")) return null;
+    if (!["canonical", "alias"].includes(term.kind) || query.length < 4 || query.endsWith("역") || /[동리]\d+(?:-\d+)?$/.test(query)) return null;
     const queryNumbers = query.match(/\d+/g) || [];
     const termNumbers = value.match(/\d+/g) || [];
     if (queryNumbers.some(n => !termNumbers.includes(n))) return null;
@@ -113,12 +113,39 @@ function scoreTerm(term, query) {
 export function searchProjects(projects, query, limit = 20) {
   const normalized = compact(query);
   if (!normalized || !Number.isFinite(limit) || limit <= 0) return [];
+  const words = normalizeText(query).split(" ");
+  // A parcel number belongs to the preceding neighbourhood. Keep that pair
+  // together so a number elsewhere in the project name cannot satisfy it.
+  const tokens = [];
+  for (let i = 0; i < words.length; i++) {
+    if (/[동리]$/.test(words[i]) && /^\d+(?:-\d+)?$/.test(words[i + 1] || "")) {
+      tokens.push(compact(words[i] + words[++i]));
+    } else tokens.push(compact(words[i]));
+  }
   const result = [];
   for (const project of projects) {
     let best = null;
     for (const term of project.search_terms || []) {
       const match = scoreTerm(term, normalized);
       if (match && (!best || match.score > best.score)) best = match;
+    }
+    if (!best && tokens.length > 1 && tokens.length <= 8) {
+      const matches = tokens.map(token => {
+        let match = null;
+        for (const term of project.search_terms || []) {
+          const scored = scoreTerm(term, token);
+          if (scored && (!match || scored.score > match.score)) match = scored;
+        }
+        return match;
+      });
+      if (matches.every(Boolean)) {
+        best = {
+          score: Math.min(89, matches.reduce((sum, match) => sum + match.score, 0) / matches.length),
+          tier: "combined_terms", matched: matches.map(match => match.matched).join(" · "),
+          match_origin: "COMBINED_SOURCE_TERMS",
+          match_explanation: "입력한 단어 모두 일치 · " + [...new Set(matches.map(match => match.match_explanation))].join(" / ")
+        };
+      }
     }
     if (best) result.push({project, ...best});
   }

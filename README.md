@@ -4,7 +4,7 @@
 
 ## 현재 상태 — 2026-10-02
 
-**부서별 병렬 구현으로 수동 물건 입력·저장·분석·비교 흐름을 완성했다. GATE 2 실데이터 통합은 진행 중이다.**
+**개인 물건 입력·저장·분석·비교 V1을 복구·업로드하고 V2 탐색/근거/반응형 개선을 통합했다. GATE 2 실데이터 통합은 진행 중이다.**
 
 - 홈: 서울 44구역, 최근 본 구역, 분석 중인 물건.
 - 검색: 실제 구역 이름·안전한 축약명·대표지번·부분일치·오타 검색. 검증된 역 자료는 아직 미연결.
@@ -44,7 +44,7 @@ npm run smoke:live -- --deal-ymd 202609
 
 ## 검증
 
-- `npm test`: **125 tests / 125 pass / 0 fail / 0 skipped** (2026-10-02, Mac Node 24.18.0).
+- `npm test`: **139 tests / 139 pass / 0 fail / 0 skipped** (2026-10-02, Mac Node 24.18.0).
 - 서버 실행 후 `npm run test:browser -- --base-url http://127.0.0.1:4173`: 검색·원문 링크·수동 입력·계산·저장·복원·선택 비교·내보내기·미확인값·재방문·모바일·지도 가드·삭제 검증. 클라우드에 공급된 Python Playwright와 `/usr/bin/chromium`을 사용한다.
 - GitHub Actions 실제 API 성공은 원격 기록에 보존돼 있다. 새 실행환경의 키 재사용·5구역 연동·경계 수집·공개 배포·경쟁제품 사용성 비교는 별도 검증이 필요하다.
 
@@ -65,3 +65,7 @@ node scripts/run_update_watch.mjs --state /workspace/.budong-onboarding/update-w
 - [docs/WORKSTREAMS_V1.md](./docs/WORKSTREAMS_V1.md), [docs/REAL_DATA_PLAN_V1.md](./docs/REAL_DATA_PLAN_V1.md), [docs/UPDATE_PIPELINE_V1.md](./docs/UPDATE_PIPELINE_V1.md): 부서 계약·실데이터 계획·수집 구조.
 
 Legal·Data·Finance·Search·UX를 병렬 진행하고 PM/QA가 계약과 통합을 관리한다. 다음은 새 환경의 API 스모크 재확인, 최소5구역 거래·건물 연결, 이용조건을 만족하는 경계 확보, 고시/첨부 parser·후보 검토 후 사실 반영 및 본인 실제 매물 검산이다.
+
+## 2026-10-02 후속 개선
+
+아실·호갱노노·토스·Apple 공식 디자인 평가를 조사해 데스크톱 사이드바/모바일 하단탭, 검색필터, 명확한 시작 동작, 유형/권리 근거, 입력 구간 바로가기·비교패널을 적용했다. 지역+구역명 복합검색과 검토필지 연결 계약을 구현했다. 실제 API는 기존 Actions Secret으로 두 서비스 각10행 연결을 재확인했다. 상세한 완료범위와 다음 배정은 [부서 작업판](PROJECT_DASHBOARD.md), [디자인 조사](docs/DESIGN_RESEARCH_V2.md)를 따른다.

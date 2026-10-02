@@ -18,6 +18,65 @@ const SOURCE_HOSTS = {
   SEOUL_OFFICIAL_NOTICE: "www.seoul.go.kr",
   SEOUL_CLEANUP: "cleanup.seoul.go.kr"
 };
+// General education only: these links do not establish this project's facts.
+const LAW_SOURCES = {
+  types: {label: "도시정비법 제2조 · 사업유형", url: "https://law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1031061685"},
+  developer: {label: "도시정비법 제27조 · 지정개발자", url: "https://law.go.kr/LSW/lsLinkCommonInfo.do?lsJoLnkSeq=1032613883"},
+  membership: {label: "도시정비법 제39조 · 조합원의 자격", url: "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1000970595"},
+  cutoff: {label: "도시정비법 제77조 · 권리산정기준일", url: "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1029443529"},
+  street: {label: "서울시 · 가로주택정비 절차", url: "https://cleanup.seoul.go.kr/cleanup/view/garoHouse.do"}
+};
+
+export function getProjectTypeExplanation(raw) {
+  const original = typeof raw === "string" ? raw : "";
+  const normalized = original.normalize("NFC").replace(/\s+/gu, "");
+  const definitions = [
+    ["재건축", "RECONSTRUCTION", "URBAN_RENEWAL_ACT", "기반시설이 비교적 갖춰진 곳의 노후 공동주택 등을 새로 짓는 사업입니다.", "재건축 동의 여부와 조합원 지위의 취득·양도 요건을 별도로 확인합니다."],
+    ["재개발(주택정비형)", "RESIDENTIAL_REDEVELOPMENT", "URBAN_RENEWAL_ACT", "주거환경과 기반시설을 함께 개선하는 재개발 유형입니다.", "권리산정기준일과 토지·건축물의 소유 이력, 분양신청·관리처분 자료를 함께 확인합니다."],
+    ["재개발(도시정비형)", "URBAN_REDEVELOPMENT", "URBAN_RENEWAL_ACT", "상업·공업지역 등의 도시기능과 환경을 개선하는 재개발 유형입니다.", "주택 공급 여부와 권리 배분은 해당 사업계획·관리처분 원문을 확인합니다."],
+    ["재개발", "REDEVELOPMENT", "URBAN_RENEWAL_ACT", "노후 지역의 주거환경 또는 도시환경을 개선하는 사업입니다.", "구체적인 사업유형과 시행방식은 해당 구역의 원문으로 확인합니다."],
+    ["가로주택정비", "STREET_HOUSING", "SMALL_HOUSING_ACT", "기존 가로를 유지하면서 노후주택을 소규모로 정비하는 사업입니다.", "정비구역 지정·추진위원회 절차가 생략될 수 있고 사업시행계획에 관리처분계획이 포함됩니다. 재개발의 단계표를 그대로 적용하지 않습니다."],
+    ["가로주택정비사업", "STREET_HOUSING", "SMALL_HOUSING_ACT", "기존 가로를 유지하면서 노후주택을 소규모로 정비하는 사업입니다.", "정비구역 지정·추진위원회 절차가 생략될 수 있고 사업시행계획에 관리처분계획이 포함됩니다. 재개발의 단계표를 그대로 적용하지 않습니다."]
+  ];
+  const definition = definitions.find(([name]) => name === normalized);
+  if (!definition) return {
+    raw: original, code: "UNKNOWN", law_family: "NEEDS_REVIEW", status: "NEEDS_REVIEW",
+    plain_explanation: "사업유형에 따른 절차와 적용 법령을 원문에서 확인해야 합니다.",
+    route_note: "재개발·재건축의 공통 단계표만으로 이 사업의 다음 절차를 정하지 않습니다.", source_links: []
+  };
+  return {raw: original, code: definition[1], law_family: definition[2], status: "GENERAL_GUIDANCE",
+    plain_explanation: definition[3], route_note: definition[4],
+    source_links: [{...(definition[2] === "SMALL_HOUSING_ACT" ? LAW_SOURCES.street : LAW_SOURCES.types)}]};
+}
+
+function governanceSummary(project, events, context) {
+  const raw = project.implementation_method_official_raw ?? project.governance_type_official_raw ?? "";
+  const trustObserved = typeof raw === "string" && raw.includes("신탁") || events.some(event =>
+    typeof event.actor_name === "string" && event.actor_name.includes("신탁"));
+  return {
+    raw, status: "NEEDS_REVIEW", trust_actor_observed: trustObserved,
+    note: trustObserved
+      ? "신탁 관련 표시가 있습니다. 신탁사가 사업시행자인지 대행자인지, 지정 고시·계약의 역할과 날짜를 별도로 확인합니다. 포털의 조합 단계 표시만으로 조합 방식으로 확정하지 않습니다."
+      : "조합·공공·신탁 등 시행방식과 사업시행자 지정은 단계와 별도로 원문을 확인합니다.",
+    source_links: context.law_family === "URBAN_RENEWAL_ACT" ? [{...LAW_SOURCES.developer}] : []
+  };
+}
+
+function rightsChecklist(context, items) {
+  const smallOrUnknown = context.law_family !== "URBAN_RENEWAL_ACT";
+  const definitions = [
+    ["RIGHTS_CUTOFF", "권리산정기준일", "구역 지정일과 별도로 정한 기준일·변경 고시 및 해당 필지의 분할·건축 이력을 확인합니다.", ["RIGHTS_CUTOFF", "RIGHTS_CALCULATION_BASE_DATE"], LAW_SOURCES.cutoff],
+    ["MEMBERSHIP_ELIGIBILITY", "조합원 지위", "사업유형·시행방식, 소유·동의·취득 이력과 거래 시점의 제한·예외를 함께 확인합니다.", ["MEMBERSHIP_ELIGIBILITY"], LAW_SOURCES.membership],
+    ["ALLOCATION_ELIGIBILITY", "분양자격", "분양신청 및 관리처분 자료와 물건별 권리 관계를 확인합니다. 고시일만으로 분양자격을 정하지 않습니다.", ["ALLOCATION_ELIGIBILITY", "SALE_ELIGIBILITY"], null],
+    ["TRANSACTION_RESTRICTIONS", "거래규제", "거래일에 적용되는 규제지역 지정·토지거래허가 등 별도 고시와 적용 대상을 확인합니다.", ["TRANSACTION_RESTRICTIONS"], null]
+  ];
+  return definitions.map(([code, label, note, types, source]) => ({
+    code, label, note, status: "NEEDS_REVIEW", effective_date: null,
+    evidence_count: items.filter(item => types.includes(item.event_type_code)).length,
+    source_links: source && !smallOrUnknown ? [{...source}] : [],
+    individual_eligibility_verified: false
+  }));
+}
 
 export function safeSourceUrl(value) {
   if (typeof value !== "string" || /[\u0000-\u0020\u007f]/u.test(value)) return null;
@@ -28,12 +87,17 @@ export function safeSourceUrl(value) {
   } catch { return null; }
 }
 
-export function getStageExplanation(raw) {
+export function getStageExplanation(raw, context = null) {
   const original = typeof raw === "string" ? raw : "";
   const normalized = original.normalize("NFC").replace(/\s+/gu, "").trim();
   const match = STAGE_DICTIONARY.find(([name, aliases]) =>
     [name, ...aliases].some(term => term.replace(/\s+/gu, "") === normalized)
   );
+  if (match && context?.raw && (context.law_family === "NEEDS_REVIEW" ||
+    context.law_family === "SMALL_HOUSING_ACT" && ["정비구역 지정·고시", "조합설립추진위원회 승인", "관리처분계획인가"].includes(match[0]))) return {
+    raw: original, official_name: match[0], kind: "UNKNOWN", status: "NEEDS_REVIEW",
+    plain_explanation: "이 사업유형에서는 표시된 절차의 적용 방식과 근거를 별도로 확인해야 합니다. " + context.route_note
+  };
   if (match) return {
     raw: original, official_name: match[0], plain_explanation: match[2],
     kind: "STATUTORY_STAGE", status: "DICTIONARY_MATCH"
@@ -54,6 +118,13 @@ function validDate(value) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/u.test(value)) return false;
   const parsed = new Date(value + "T00:00:00.000Z");
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+function validReviewInstant(value) {
+  if (typeof value !== "string") return false;
+  const match = /^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u.exec(value);
+  return Boolean(match && Number(match[1]) < 24 && Number(match[2]) < 60 && Number(match[3]) < 60 &&
+    validDate(value.slice(0, 10)) && Number.isFinite(Date.parse(value)));
 }
 
 function projectEvent(event, eventKind, events) {
@@ -77,9 +148,9 @@ function projectEvent(event, eventKind, events) {
   const completeRegistered = event.certainty === "OFFICIAL_CONFIRMED" && issues.length === 0;
   const checked = review.checked_fields ?? {};
   const reviewed = completeRegistered && review.status === "NOTICE_METADATA_AND_BODY_CHECKED" &&
-    review.http_status === 200 && typeof review.reviewed_at === "string" &&
-    Number.isFinite(Date.parse(review.reviewed_at)) && /^[a-f0-9]{64}$/u.test(review.body_sha256 ?? "") &&
-    checked.notice_number === event.notice_number && checked.event_date === event.event_date &&
+    review.http_status === 200 && validReviewInstant(review.reviewed_at) &&
+    /^[a-f0-9]{64}$/u.test(review.body_sha256 ?? "") &&
+    checked.notice_number === event.notice_number && validDate(checked.event_date) && checked.event_date === (event.event_date ?? event.effective_date) &&
     checked.event_name_official === event.event_name_official;
   return {
     ...event,
@@ -91,6 +162,17 @@ function projectEvent(event, eventKind, events) {
     review_status: reviewed ? review.status : "NEEDS_REVIEW",
     evidence_verified: reviewed,
     evidence_reviewed_at: reviewed ? review.reviewed_at : null,
+    provenance: {
+      registered_source_url: safeSourceUrl(event.source_locator), reviewed_source_url: reviewed ? sourceUrl : null,
+      notice_date: validDate(event.event_date) ? event.event_date : null,
+      effective_date: validDate(event.effective_date) ? event.effective_date : null,
+      reviewed_at: reviewed ? review.reviewed_at : null,
+      document_sha256: reviewed ? review.body_sha256 : null,
+      hash_representation: reviewed ? review.body_hash_representation ?? null : null,
+      attachments_reviewed: reviewed && review.attachments_reviewed === true,
+      review_scope: reviewed ? "REGISTERED_NOTICE_METADATA_AND_HTML_BODY" : "NEEDS_REVIEW",
+      individual_eligibility_verified: false
+    },
     latest_official_verified: false,
     issues
   };
@@ -109,9 +191,11 @@ export function getProjectEvidence(project = {}, deepTarget = null) {
   const governanceEvents = (deep.governance_events ?? []).map(event => projectEvent(event, "PROJECT_GOVERNANCE_EVENT", []));
   const rightsRaw = deep.rights_regulation_events ?? deep.rights_events ?? [];
   const rightsItems = rightsRaw.map(event => projectEvent(event, "RIGHTS_REGULATION_EVENT", []));
+  const projectContext = getProjectTypeExplanation(project.project_type_official_raw ?? project.project_type_name_official);
   const issues = ["LATEST_OFFICIAL_SOURCE_REVIEW_REQUIRED"];
   if (deepTarget && !matched) issues.push("PROJECT_EVIDENCE_MISMATCH");
   if (!observedAt) issues.push("SNAPSHOT_DATE_MISSING");
+  else if (!validDate(observedAt)) issues.push("SNAPSHOT_DATE_NEEDS_REVIEW");
   if (!legalEvents.length) issues.push("LEGAL_EVENT_MISSING");
   if (!rightsItems.length) issues.push("RIGHTS_EVIDENCE_MISSING");
   return {
@@ -122,13 +206,17 @@ export function getProjectEvidence(project = {}, deepTarget = null) {
       source_url: safeSourceUrl(observed.source_locator ?? project.source_locator),
       effective_date: null,
       status: "OBSERVED_SNAPSHOT",
-      explanation: getStageExplanation(stageRaw)
+      freshness: {status: validDate(observedAt) ? "OBSERVATION_ONLY" : "OBSERVATION_DATE_NEEDS_REVIEW", observed_at: observedAt, latest_official_verified: false},
+      explanation: getStageExplanation(stageRaw, projectContext)
     },
     legal_events: legalEvents,
     policy_events: policyEvents,
     governance_events: governanceEvents,
+    project_context: projectContext,
+    governance_summary: governanceSummary(project, governanceEvents, projectContext),
     rights: {
       status: "NEEDS_REVIEW", items: rightsItems,
+      checklist: rightsChecklist(projectContext, rightsItems),
       note: "권리산정기준일·조합원 지위·분양자격·거래규제는 단계와 별도로 확인해야 합니다. 자료가 없으면 확인 필요 상태를 유지합니다."
     },
     readiness: {

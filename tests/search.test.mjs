@@ -94,3 +94,23 @@ test("empty input, result limits and stable ambiguous queries are handled", () =
   assert.equal(searchProjects(projects, "서울", 3).length, 3);
   assert.deepEqual(searchProjects(projects, "상도"), searchProjects(projects, "상도"));
 });
+
+test("district and project-name terms match together while conflicting districts fail", () => {
+  for (const query of ["동작구 상도15", "서울 동작구 상도 15", "동작구 상도15구억"]) {
+    const rows = searchProjects(projects, query);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].project.id, "seoul-11590-02");
+    assert.equal(rows[0].tier, "combined_terms");
+  }
+  assert.deepEqual(searchProjects(projects, "송파구 상도15"), []);
+});
+
+test("compound parcel searches preserve the neighbourhood-number pair", () => {
+  assert.equal(searchProjects(projects, "양천구 신정동 311")[0].project.id, "seoul-11470-01");
+  assert.equal(searchProjects(projects, "강남구 일원동 615-1")[0].project.id, "seoul-11680-06");
+  for (const query of ["양천구 신정동 313", "강남구 일원동 6151", "동작구 신정동 311", "송파구 잠실역"]) {
+    assert.deepEqual(searchProjects(projects, query), []);
+  }
+  const synthetic = prepareSearchProjects([{id:"test",canonical_name:"신정313구역",representative_lot:"신정동 311",jurisdiction:"서울특별시 양천구",source_locator:"https://example.invalid/fixture"}]);
+  assert.deepEqual(searchProjects(synthetic, "양천구 신정동 313"), []);
+});

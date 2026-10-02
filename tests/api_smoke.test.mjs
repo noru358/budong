@@ -20,6 +20,8 @@ test("smoke defaults to Seoul current month and reports empty results as connect
   assert.equal(result.scope,"CONNECTIVITY_ONLY");
   assert.deepEqual(result.services.map(s=>s.data_presence),["NO_ROWS","NO_ROWS"]);
   assert.equal(urls.find(rtmsUrl).searchParams.get("DEAL_YMD"),"202610");
+  assert.deepEqual(result.services[0].request,{lawd_cd:"11590",deal_ymd:"202610",page_no:1,num_of_rows:10});
+  assert.equal(result.services[0].coverage,"FIRST_PAGE_ONLY");
   assert.ok(!JSON.stringify(result).includes(env.DATA_GO_KR_SERVICE_KEY));
 });
 
@@ -59,5 +61,14 @@ test("parcel/month overrides are used while malformed responses remain failures"
   assert.equal(urls.find(u=>!rtmsUrl(u)).searchParams.get("ji"),"0001");
   assert.equal(result.ok,false);
   assert.ok(result.services.every(s=>s.data_presence==="UNVERIFIED"));
+  assert.ok(result.services.every(s=>s.coverage==="UNVERIFIED"));
   assert.throws(()=>readSmokeOptions(["--unknown","value"]),/Invalid smoke arguments/);
+});
+
+test("smoke diagnostic allowlist does not persist malformed query values or endpoint overrides",async()=>{
+  const result=await runLiveDataSmoke({env,now,options:{lawdCd:env.DATA_GO_KR_SERVICE_KEY,
+    buildingEndpoint:"https://invalid.test/?serviceKey="+env.DATA_GO_KR_SERVICE_KEY},fetchImpl:async()=>{throw new Error("unexpected fetch");}});
+  assert.equal(result.services[0].request.lawd_cd,null);
+  assert.ok(!JSON.stringify(result).includes(env.DATA_GO_KR_SERVICE_KEY));
+  assert.ok(!JSON.stringify(result).includes("invalid.test"));
 });

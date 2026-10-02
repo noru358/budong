@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { getStageExplanation, getProjectEvidence, safeSourceUrl } from "../src/legal.mjs";
+import { getStageExplanation, getProjectEvidence, getProjectTypeExplanation, safeSourceUrl } from "../src/legal.mjs";
 
 const seed = JSON.parse(fs.readFileSync(new URL("../data/seoul_seed_v1.json", import.meta.url), "utf8"));
 const deep = JSON.parse(fs.readFileSync(new URL("../data/deep_validation_v1.json", import.meta.url), "utf8"));
@@ -88,4 +88,78 @@ test("another project's legal evidence is not attached to the selected project",
   const model = getProjectEvidence({ id: "other" }, deep.targets[0]);
   assert.deepEqual(model.legal_events, []);
   assert.ok(model.readiness.issues.includes("PROJECT_EVIDENCE_MISMATCH"));
+});
+
+test("small housing and unrecognized types do not inherit the redevelopment procedure", () => {
+  const street = getProjectTypeExplanation("가로주택정비사업");
+  assert.equal(street.law_family, "SMALL_HOUSING_ACT");
+  assert.match(street.route_note, /관리처분계획이 포함/);
+  for (const type of ["지역주택", "리모델링", "재건축 유사사업", "미상", null]) {
+    const context = getProjectTypeExplanation(type);
+    assert.equal(context.status, "NEEDS_REVIEW");
+    assert.equal(context.law_family, "NEEDS_REVIEW");
+    assert.deepEqual(context.source_links, []);
+  }
+  assert.equal(getProjectTypeExplanation(" 재개발 (주택정비형) ").code, "RESIDENTIAL_REDEVELOPMENT");
+  const streetDetail = getProjectEvidence({id:"street", project_type_official_raw:"가로주택정비", current_stage_official_raw:"관리처분인가"});
+  assert.equal(streetDetail.snapshot.explanation.status, "NEEDS_REVIEW");
+  const regional = getProjectEvidence({id:"regional", project_type_official_raw:"지역주택", current_stage_official_raw:"조합설립인가"});
+  assert.equal(regional.snapshot.explanation.kind, "UNKNOWN");
+  assert.deepEqual(regional.governance_summary.source_links, []);
+});
+
+test("observed trust company cannot establish a designated developer or association route", () => {
+  const model = detail("상도15구역");
+  assert.equal(model.governance_summary.trust_actor_observed, true);
+  assert.equal(model.governance_summary.status, "NEEDS_REVIEW");
+  assert.match(model.governance_summary.note, /시행자인지 대행자인지/);
+  assert.equal(model.snapshot.stage_raw, "조합설립인가");
+  assert.equal(model.project_context.code, "RESIDENTIAL_REDEVELOPMENT");
+});
+
+test("rights review is per topic and a reviewed notice is not individual eligibility", () => {
+  const event = structuredClone(deep.targets[0].legal_events[0]);
+  event.event_type_code = "RIGHTS_CUTOFF";
+  const model = getProjectEvidence({id: "rights", project_type_official_raw: "재개발"}, {
+    project_id: "rights", rights_events: [event]
+  });
+  assert.equal(model.rights.items[0].evidence_verified, true);
+  assert.equal(model.rights.checklist.find(item => item.code === "RIGHTS_CUTOFF").evidence_count, 1);
+  for (const item of model.rights.checklist) {
+    assert.equal(item.status, "NEEDS_REVIEW");
+    assert.equal(item.effective_date, null);
+    assert.equal(item.individual_eligibility_verified, false);
+  }
+  const unknown = getProjectEvidence({id: "unknown", project_type_official_raw: "지역주택"});
+  assert.ok(unknown.rights.checklist.every(item => item.source_links.length === 0));
+});
+
+test("document review requires a real explicitly checked date and timezone-bearing instant", () => {
+  const target = structuredClone(deep.targets[0]);
+  const event = target.legal_events[0];
+  // An effective date cannot pass through matching two missing event_date fields.
+  event.effective_date = event.event_date;
+  delete event.event_date;
+  delete event.evidence_review.checked_fields.event_date;
+  assert.equal(getProjectEvidence({id:target.project_id}, target).legal_events[0].evidence_verified, false);
+  event.evidence_review.checked_fields.event_date = event.effective_date;
+  assert.equal(getProjectEvidence({id:target.project_id}, target).legal_events[0].evidence_verified, true);
+  for (const date of ["2026-02-30T12:00:00Z", "2026-10-01", "2026-10-01T12:00:00", "2026-10-01T24:00:00Z"]) {
+    event.evidence_review.reviewed_at = date;
+    assert.equal(getProjectEvidence({id:target.project_id}, target).legal_events[0].evidence_verified, false);
+  }
+});
+
+test("notice dates, effective dates and observation freshness retain distinct provenance", () => {
+  const model = detail("한남5재정비촉진구역");
+  const event = model.legal_events[0];
+  assert.equal(event.provenance.notice_date, "2026-04-30");
+  assert.equal(event.provenance.effective_date, null);
+  assert.equal(event.provenance.attachments_reviewed, false);
+  assert.equal(event.provenance.individual_eligibility_verified, false);
+  assert.equal(model.snapshot.freshness.status, "OBSERVATION_ONLY");
+  assert.equal(model.snapshot.freshness.latest_official_verified, false);
+  const invalid = getProjectEvidence({id:"date", stage_snapshot_at:"2026-02-30"});
+  assert.equal(invalid.snapshot.freshness.status, "OBSERVATION_DATE_NEEDS_REVIEW");
+  assert.ok(invalid.readiness.issues.includes("SNAPSHOT_DATE_NEEDS_REVIEW"));
 });

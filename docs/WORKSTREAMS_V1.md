@@ -1,6 +1,8 @@
 # V1 WORKSTREAMS — 2026-09-28
 
-> 2026-10-02: 5개 부서가 병렬 구현·통합했다. 수동입력·저장·비교·계산·검색을 검증하고 5구역6고시의 정보·본문을 재검토했다. 실제 목록 parser로 서울25구/1,184개 사업장 baseline을 수집했다. 전체117개 테스트·브라우저 동선 PASS. 각 부서 현황과 다음 배정은 PROJECT_DASHBOARD.md, 검증 범위는 docs/VALIDATION_V1.md를 따른다. API·지도·공식 사실 자동반영을 포함한 G2 실제 연결은 진행 중이다.
+> 2026-10-02: 5개 부서가 병렬 구현·통합했다. 수동입력·저장·비교·계산·검색을 검증하고 5구역6고시의 정보·본문을 재검토했다. 실제 목록 parser로 서울25구/1,184개 사업장 baseline을 수집했다. 후속V2 전체139개 테스트·브라우저 동선 PASS. 각 부서 현황과 다음 배정은 PROJECT_DASHBOARD.md, 검증 범위는 docs/VALIDATION_V1.md를 따른다. API·지도·공식 사실 자동반영을 포함한 G2 실제 연결은 진행 중이다.
+
+후속 부서 보고: `DESIGN_RESEARCH_V2.md`, `DATA_PROGRESS_V2.md`, `LEGAL_PROGRESS_V2.md`, `FINANCE_SEARCH_PROGRESS_V2.md`. 현재 배정·실제 검증범위는 최신 dashboard를 우선한다.
 
 기준: README.md, REDEVELOPMENT_HANDOFF_v0.2_20260928.md, V1_PROTOTYPE_CONTRACT.md
 

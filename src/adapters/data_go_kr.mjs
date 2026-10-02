@@ -285,6 +285,7 @@ export function normalizeBuildingTitleItem(raw,{observedAt=new Date().toISOStrin
     use_approval_day:String(raw.useAprDay||"").trim()||null,
     sigungu_cd:String(raw.sigunguCd||"").trim()||null,
     bjdong_cd:String(raw.bjdongCd||"").trim()||null,
+    plat_gb_cd:String(raw.platGbCd??"").trim()||null,
     bun:String(raw.bun||"").trim()||null,
     ji:String(raw.ji||"").trim()||null
   };

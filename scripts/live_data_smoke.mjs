@@ -32,6 +32,13 @@ export async function runLiveDataSmoke({env=process.env,fetchImpl=environmentFet
   const observedAt=now.toISOString();
   const common={env,fetchImpl,timeoutMs:options.timeoutMs??20000,observedAt,pageNo:1,numOfRows:10};
   const names=["RTMS_MULTIFAMILY_SALE","BUILDING_HUB"];
+  // Persist allowlisted query identifiers only, never the URL, endpoint override or key.
+  const safeCode=(value,n)=>new RegExp(`^\\d{${n}}$`).test(String(value))?String(value):null;
+  const query=[
+    {lawd_cd:safeCode(options.lawdCd??"11590",5),deal_ymd:safeCode(options.dealYmd??currentSeoulMonth(now),6)},
+    {sigungu_cd:safeCode(options.sigunguCd??"11590",5),bjdong_cd:safeCode(options.bjdongCd??"10200",5),
+      plat_gb_cd:"0",bun:safeCode(options.bun??"0418",4),ji:safeCode(options.ji??"0000",4)}
+  ];
   const requests=await Promise.allSettled([
     fetchRtmsTrades({...common,lawdCd:options.lawdCd??"11590",dealYmd:options.dealYmd??currentSeoulMonth(now)}),
     // Connectivity example: 상도동 418. Override codes for another known parcel;
@@ -41,11 +48,13 @@ export async function runLiveDataSmoke({env=process.env,fetchImpl=environmentFet
   ]);
   const services=requests.map((result,i)=>{
     if(result.status==="fulfilled"){
-      return {service:names[i],connectivity:"OK",row_count:result.value.length,
+      return {service:names[i],request:{...query[i],page_no:1,num_of_rows:10},
+        coverage:"FIRST_PAGE_ONLY",connectivity:"OK",row_count:result.value.length,
         data_presence:result.value.length?"ROWS_PRESENT":"NO_ROWS"};
     }
     const error=result.reason;
-    return {service:names[i],connectivity:"FAILED",row_count:null,data_presence:"UNVERIFIED",
+    return {service:names[i],request:{...query[i],page_no:1,num_of_rows:10},
+      coverage:"UNVERIFIED",connectivity:"FAILED",row_count:null,data_presence:"UNVERIFIED",
       provider_code:error?.providerCode??null,http_status:error?.httpStatus??null,category:error?.category??"REQUEST_OR_RESPONSE",
       error:sanitizeApiError(error,{env})};
   });

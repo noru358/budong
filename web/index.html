@@ -3,14 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#243e34">
+<meta name="theme-color" content="#254c3c">
 <title>budong — 구역부터 내 물건까지</title>
 <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-<header class="header"><a class="brand" href="#home">budong<span>구역부터 내 물건까지</span></a><span class="private">개인 검토용 V1</span></header>
+<a class="skip-link" href="#app">본문으로 이동</a>
+<header class="header"><a class="brand" href="#home">budong<span>구역부터 내 물건까지</span></a><div class="header-context"><span>서울 정비사업 검토</span><span class="private">개인 검토용 V1</span></div></header>
 <div class="layout">
-<nav id="nav" class="nav" aria-label="주요 화면"><button data-view="home">홈</button><button data-view="map">지도</button><button data-view="search">검색</button><button data-view="detail">구역 상세</button><button data-view="analysis">물건 분석·비교</button></nav>
+<nav id="nav" class="nav" aria-label="주요 화면">
+<p class="nav-caption">나의 검토 공간</p>
+<button data-view="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/></svg><span>홈</span></button>
+<button data-view="map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2zM9 3v16m6-14v16"/></svg><span>지도</span></button>
+<button data-view="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 6 6"/></svg><span>검색</span></button>
+<button data-view="detail"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM9 8h6m-6 4h6m-6 4h4"/></svg><span>구역 상세</span></button>
+<button data-view="analysis"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v18h17M8 17v-5m5 5V6m5 11V9"/></svg><span class="desktop-label">물건 분석·비교</span><span class="mobile-label">분석·비교</span></button>
+<div class="nav-note"><strong>근거부터 차근차근</strong><p>공식 관찰값과<br>내 입력·가정을 구분합니다.</p></div>
+</nav>
 <div id="notice" role="status" aria-live="polite"></div>
 <main id="app" tabindex="-1"><p>서울 구역 정보를 불러오고 있습니다.</p></main>
 <footer>공식 자료의 관찰값과 사용자 입력·가정을 구분합니다. 저장한 물건은 이 브라우저에만 남습니다.</footer>
