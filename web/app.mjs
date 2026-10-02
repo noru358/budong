@@ -47,7 +47,9 @@ const liveResults = new Map();
 let health = null,
   mapCleanup = null,
   explorerScope = 'all',
-  mobileMap = false,
+  mapScope = 'all',
+  mapRecords = [],
+  mapViewState = null,
   sourceRegistry = { sources: [] },
   backupDraft = null;
 let store,
@@ -242,7 +244,9 @@ function explorerPreview(p) {
     esc(p.id) +
     '">' +
     icon('plus') +
-    ' 내 물건</button></div><p class="preview-source">공식 관찰값 · 개별 권리·분양자격 확인 필요</p>'
+    ' 내 물건</button></div><p class="preview-source">공식 관찰값 · 개별 권리·분양자격 확인 필요</p><button class="secondary preview-map-link" data-action="toggle-map">' +
+    icon('map') +
+    ' 지도 열기</button>'
   );
 }
 function selectExplorerProject(id) {
@@ -261,6 +265,10 @@ function selectExplorerProject(id) {
   const params = new URLSearchParams(location.hash.split('?')[1] || '');
   params.set('project', id);
   history.replaceState(null, '', '#' + view + '?' + params);
+  if (view === 'map') {
+    renderMapList();
+    mapCleanup?.focusProject?.(id);
+  }
   if (innerWidth < 800 && preview)
     preview.scrollIntoView({
       block: 'nearest',
@@ -269,7 +277,7 @@ function selectExplorerProject(id) {
         : 'smooth',
     });
 }
-function explore(mapOnly = false) {
+function explore() {
   const rows = query
     ? searchProjects(projects, query, projects.length)
     : projects.map((project) => ({ project }));
@@ -299,11 +307,9 @@ function explore(mapOnly = false) {
           '</option>',
       )
       .join('');
-  app.classList.toggle('map-expanded', mapOnly);
-  app.classList.toggle('mobile-map-visible', mobileMap || mapOnly);
   app.innerHTML =
     '<div class="explorer-heading"><div><p class="eyebrow">서울 정비사업</p><h1>' +
-    (mapOnly ? '지도에서 탐색' : '구역 탐색') +
+    '구역 탐색' +
     '</h1></div><span class="snapshot-caption">포털 관찰 ' +
     esc(projects[0]?.stage_snapshot_at) +
     '</span></div><div class="explorer-toolbar">' +
@@ -326,7 +332,7 @@ function explore(mapOnly = false) {
       : '') +
     '<button class="map-toggle secondary" data-action="toggle-map">' +
     icon('map') +
-    (mobileMap || mapOnly ? '목록 보기' : '지도 보기') +
+    '지도 열기' +
     '</button></div><div class="explorer-layout"><section class="explorer-results" aria-label="구역 목록"><div class="list-toolbar"><div class="list-tabs"><button data-action="explorer-scope" data-scope="all" class="' +
     (explorerScope === 'all' ? 'active' : '') +
     '">전체 구역</button><button data-action="explorer-scope" data-scope="recent" class="' +
@@ -351,25 +357,145 @@ function explore(mapOnly = false) {
           ? '최근 본 구역이 없습니다'
           : '검색 결과가 없습니다') +
         '</strong><p>이름 일부나 대표지번으로 검색하거나 선택한 조건을 줄여보세요.</p><button class="secondary" data-action="clear-search">전체 구역 보기</button></div>') +
-    '</div><p class="list-footnote">구역명·대표지번 검색 지원 · 역명 검색은 자료 연결 전</p></section><div class="explorer-map">' +
-    mapWorkspaceHtml({
-      projects,
-      selectedId: current,
-      boundaryCount: (boundaries?.features || []).length,
-    }) +
-    '<aside class="map-inspector" id="selected-project" aria-label="선택 구역 요약">' +
+    '</div><p class="list-footnote">이름·주소·사업단계로 구역을 살펴보세요.</p></section><aside class="explorer-preview" id="selected-project" aria-label="선택 구역 요약">' +
     explorerPreview(visible.length ? projectBy(current) : null) +
-    '</aside></div></div>';
+    '</aside></div>';
+}
+
+function mapSelection(p) {
+  if (!p)
+    return '<p class="map-selection-empty">구역을 선택하면 위치 연결 상태를 확인할 수 있습니다.</p>';
+  const records = mapRecords.filter((r) => r.project_id === p.id);
+  return (
+    '<div class="map-selection-heading"><span class="eyebrow">선택한 구역</span><strong>' +
+    esc(p.canonical_name) +
+    '</strong><span class="meta">' +
+    esc(p.representative_lot) +
+    '</span></div>' +
+    '<p class="map-location-state ' +
+    (records.length ? 'connected' : '') +
+    '">' +
+    (records.length
+      ? esc([...new Set(records.map((r) => r.label))].join(' · '))
+      : '위치 미연결 · 이 구역은 아직 지도에 표시되지 않습니다.') +
+    '</p>' +
+    '<div class="map-selection-actions"><button class="primary" data-action="project" data-id="' +
+    esc(p.id) +
+    '">구역 상세</button><button class="secondary" data-action="map-mark" data-id="' +
+    esc(p.id) +
+    '">참고 위치 지정</button></div>'
+  );
+}
+function renderMapList() {
+  const rows = (
+    query
+      ? searchProjects(projects, query, projects.length).map((r) => r.project)
+      : projects
+  ).filter(
+    (p) =>
+      (!district || p.jurisdiction === district) &&
+      (!projectType || p.project_type_name_official === projectType),
+  );
+  const located = new Set(mapRecords.map((r) => r.project_id));
+  const visible = rows.filter(
+    (p) => mapScope !== 'located' || located.has(p.id),
+  );
+  document.querySelector('#map-result-count').textContent =
+    '표시된 구역 ' + located.size + ' · 전체 ' + projects.length;
+  document.querySelectorAll('[data-action="map-scope"]').forEach((b) => {
+    b.classList.toggle('active', b.dataset.scope === mapScope);
+    b.setAttribute('aria-pressed', String(b.dataset.scope === mapScope));
+  });
+  document.querySelector('#map-project-list').innerHTML = visible.length
+    ? visible
+        .map(
+          (p) =>
+            '<button class="map-project-row ' +
+            (current === p.id ? 'selected' : '') +
+            '" data-action="select-project" data-id="' +
+            esc(p.id) +
+            '" aria-pressed="' +
+            (current === p.id) +
+            '"><span class="map-row-address">' +
+            esc(p.jurisdiction.replace('서울특별시 ', '')) +
+            ' · ' +
+            esc(p.representative_lot) +
+            '</span><strong>' +
+            esc(p.canonical_name) +
+            '</strong><span class="map-row-state ' +
+            (located.has(p.id) ? 'connected' : '') +
+            '">' +
+            (located.has(p.id) ? '지도에 표시됨' : '위치 미연결') +
+            '</span></button>',
+        )
+        .join('')
+    : '<div class="map-list-empty"><strong>' +
+      (mapScope === 'located'
+        ? '표시할 위치가 없습니다'
+        : '검색 결과가 없습니다') +
+      '</strong><p>' +
+      (mapScope === 'located'
+        ? '전체 구역에서 선택한 뒤 참고 위치를 지정하거나 검토한 경계를 가져오세요.'
+        : '검색어를 줄이거나 탐색 화면에서 조건을 바꿔보세요.') +
+      '</p><button class="secondary" data-action="map-scope" data-scope="all">전체 구역 보기</button></div>';
+  document.querySelector('#map-selected-project').innerHTML = mapSelection(
+    projectBy(current),
+  );
+}
+function map() {
+  const filterOptions = (values, selected, label) =>
+    '<option value="">' +
+    label +
+    '</option>' +
+    [...new Set(values)]
+      .sort((a, b) => a.localeCompare(b, 'ko'))
+      .map(
+        (value) =>
+          '<option value="' +
+          esc(value) +
+          '" ' +
+          (value === selected ? 'selected' : '') +
+          '>' +
+          esc(value.replace('서울특별시 ', '')) +
+          '</option>',
+      )
+      .join('');
+  app.innerHTML =
+    '<div class="map-page-heading"><div><h1>지도</h1><p>위치와 경계를 지도 위에서 살펴보세요.</p></div><button class="secondary" data-action="map-to-list">' +
+    icon('back') +
+    ' 구역 목록</button></div>' +
+    '<div class="map-page-layout"><aside class="map-sidebar" aria-label="지도 구역 선택">' +
+    searchForm(query) +
+    '<div class="map-sidebar-filters"><select id="search-district" name="district" form="search-form" aria-label="자치구">' +
+    filterOptions(
+      projects.map((p) => p.jurisdiction),
+      district,
+      '전체 자치구',
+    ) +
+    '</select><select id="search-type" name="projectType" form="search-form" aria-label="사업유형">' +
+    filterOptions(
+      projects.map((p) => p.project_type_name_official),
+      projectType,
+      '전체 사업유형',
+    ) +
+    '</select></div><div class="map-list-tabs"><button data-action="map-scope" data-scope="all">전체 구역</button><button data-action="map-scope" data-scope="located">지도에 표시된 구역</button></div><p id="map-result-count" class="map-result-count"></p><div id="map-project-list" class="map-project-list"></div><section id="map-selected-project" class="map-selection" aria-label="선택 구역 위치"></section></aside><div class="map-page-surface">' +
+    mapWorkspaceHtml({ projects, selectedId: current }) +
+    '</div></div>';
+  renderMapList();
   mapCleanup = mountMapWorkspace({
     projects,
     selectedId: current,
     boundaries,
+    viewState: mapViewState,
     onSelect: selectExplorerProject,
+    onViewChange: (value) => {
+      mapViewState = value;
+    },
+    onData: (records) => {
+      mapRecords = records;
+      if (view === 'map') renderMapList();
+    },
   });
-}
-
-function map() {
-  explore(true);
 }
 
 function reviewTime(value) {
@@ -1503,6 +1629,7 @@ function render() {
     mapCleanup = null;
   }
   app.className = 'view-' + view;
+  document.body.classList.toggle('map-mode', view === 'map');
   document.querySelector('#workspace-count').textContent = String(
     workspace.cases.length,
   );
@@ -1539,7 +1666,8 @@ app.addEventListener('submit', (event) => {
     query = String(data.get('query') || '').trim();
     district = String(data.get('district') || '');
     projectType = String(data.get('projectType') || '');
-    go('search', {
+    go(view === 'map' ? 'map' : 'search', {
+      project: current,
       q: query,
       ...(district ? { district } : {}),
       ...(projectType ? { type: projectType } : {}),
@@ -1605,7 +1733,7 @@ app.addEventListener('click', (event) => {
     }
   }
   if (action === 'select-project') {
-    if (innerWidth < 800 && !mobileMap && view !== 'map')
+    if (innerWidth < 800 && view !== 'map')
       go('detail', { project: button.dataset.id });
     else selectExplorerProject(button.dataset.id);
   }
@@ -1613,12 +1741,19 @@ app.addEventListener('click', (event) => {
     explorerScope = button.dataset.scope;
     render();
   }
-  if (action === 'toggle-map') {
-    mobileMap = !(mobileMap || view === 'map');
-    if (view === 'map' && !mobileMap) go('home');
-    else app.classList.toggle('mobile-map-visible', mobileMap);
-    setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
+  if (['toggle-map', 'map-to-list'].includes(action)) {
+    go(action === 'toggle-map' ? 'map' : 'home', {
+      project: current,
+      q: query,
+      ...(district ? { district } : {}),
+      ...(projectType ? { type: projectType } : {}),
+    });
   }
+  if (action === 'map-scope') {
+    mapScope = button.dataset.scope;
+    renderMapList();
+  }
+  if (action === 'map-mark') mapCleanup?.openPanel?.(button.dataset.id);
   if (action === 'clear-search') {
     query = '';
     district = '';

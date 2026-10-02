@@ -38,7 +38,7 @@ try {
   );
   const page = await context.newPage(),
     errors = [];
-  page.on('pageerror', (e) => errors.push(String(e)));
+  page.on('pageerror', (e) => errors.push(e.stack || String(e)));
   page.on('console', (m) => {
     if (/Content Security Policy|Refused to/.test(m.text()))
       errors.push(m.text());
@@ -203,7 +203,76 @@ try {
     '서울특별시 동작구',
   );
   await page.locator('[data-action=clear-search]').click();
+  assert.equal(
+    await page.locator('#map-canvas').count(),
+    0,
+    'list exploration is independent of the map',
+  );
+  await page.locator('#nav [data-view=map]').click();
+  await page.locator('#map-canvas').waitFor();
+  assert.equal(
+    await page.locator('.explorer-layout').count(),
+    0,
+    'map uses its own workspace',
+  );
+  await page.waitForFunction(() =>
+    document
+      .querySelector('#map-network-status')
+      ?.textContent.includes('연결됨'),
+  );
+  const zoomBefore = Number(
+    await page.locator('#map-canvas').getAttribute('data-zoom'),
+  );
+  await page.locator('.leaflet-control-zoom-in').click();
+  await page.waitForFunction(
+    (z) => Number(document.querySelector('#map-canvas').dataset.zoom) === z + 1,
+    zoomBefore,
+  );
+  const canvas = await page.locator('#map-canvas').boundingBox();
+  await page.mouse.move(
+    canvas.x + canvas.width * 0.6,
+    canvas.y + canvas.height * 0.55,
+  );
+  await page.mouse.wheel(0, -400);
+  await page.waitForFunction(
+    (z) => Number(document.querySelector('#map-canvas').dataset.zoom) > z + 1,
+    zoomBefore,
+  );
+  const centerBefore = await page
+    .locator('#map-canvas')
+    .getAttribute('data-center');
+  await page.mouse.move(
+    canvas.x + canvas.width * 0.6,
+    canvas.y + canvas.height * 0.55,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    canvas.x + canvas.width * 0.4,
+    canvas.y + canvas.height * 0.5,
+    { steps: 12 },
+  );
+  await page.mouse.up();
+  await page.waitForFunction(
+    (c) => document.querySelector('#map-canvas').dataset.center !== c,
+    centerBefore,
+  );
   await page.locator('#map-options').click();
+  await page.locator('#map-place-pin').click();
+  assert.equal(await page.locator('#map-import-panel').isVisible(), false);
+  await page
+    .locator('#map-canvas')
+    .click({ position: { x: canvas.width * 0.7, y: canvas.height * 0.55 } });
+  await page.locator('#map-import-panel').waitFor({ state: 'visible' });
+  assert.ok(
+    Number(await page.locator('#map-pin-form [name=latitude]').inputValue()) >
+      30,
+  );
+  assert.equal(
+    await page
+      .locator('#map-canvas')
+      .evaluate((el) => el.classList.contains('placing-pin')),
+    false,
+  );
   await page.locator('#map-pin-form [name=latitude]').fill('37.5');
   await page.locator('#map-pin-form [name=longitude]').fill('126.95');
   await page.locator('#map-pin-form button[type=submit]').click();
@@ -216,6 +285,49 @@ try {
     JSON.parse(localStorage.getItem('budong.map.personal.v1')),
   );
   assert.equal(pinState.pins[0].certainty, 'USER_ASSUMPTION');
+  await page.locator('#map-options').click();
+  await page.locator('#map-seoul').click();
+  await page.waitForFunction(
+    () => document.querySelector('#map-canvas').dataset.zoom === '11',
+  );
+  await page
+    .locator('.map-project-row[data-id="' + pinState.pins[0].project_id + '"]')
+    .click();
+  await page.waitForFunction(() => {
+    const c = document
+      .querySelector('#map-canvas')
+      .dataset.center.split(',')
+      .map(Number);
+    return Math.abs(c[0] - 37.5) < 0.0001 && Math.abs(c[1] - 126.95) < 0.0001;
+  });
+  await page
+    .locator('[data-action=map-scope][data-scope=located]')
+    .first()
+    .click();
+  assert.equal(await page.locator('.map-project-row').count(), 1);
+  const preservedCenter = await page
+    .locator('#map-canvas')
+    .getAttribute('data-center');
+  const preservedZoom = await page
+    .locator('#map-canvas')
+    .getAttribute('data-zoom');
+  await page.locator('[data-action=map-to-list]').click();
+  assert.equal(await page.locator('#map-canvas').count(), 0);
+  await page.locator('#nav [data-view=map]').click();
+  await page.waitForFunction(() =>
+    document
+      .querySelector('#map-network-status')
+      ?.textContent.includes('연결됨'),
+  );
+  assert.equal(
+    await page.locator('#map-canvas').getAttribute('data-center'),
+    preservedCenter,
+  );
+  assert.equal(
+    await page.locator('#map-canvas').getAttribute('data-zoom'),
+    preservedZoom,
+  );
+  await page.locator('#map-options').click();
   const good = {
     type: 'FeatureCollection',
     features: [
@@ -272,12 +384,51 @@ try {
   for (const width of [1440, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
     assert.ok(
+      await page.locator('.leaflet-control-zoom-in').evaluate((el) => {
+        const r = el.getBoundingClientRect(),
+          hit = document.elementFromPoint(
+            r.x + r.width / 2,
+            r.y + r.height / 2,
+          );
+        return hit && (hit === el || el.contains(hit));
+      }),
+      'zoom is clickable without an overlay at ' + width,
+    );
+    assert.ok(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
       'explore overflow ' + width,
     );
   }
+  await context.unroute('https://tile.openstreetmap.org/**');
+  await context.route('https://tile.openstreetmap.org/**', (r) => r.abort());
+  const failurePage = await context.newPage();
+  failurePage.on('pageerror', (e) => errors.push(e.stack || String(e)));
+  await failurePage.goto(base + '/web/#map', { waitUntil: 'domcontentloaded' });
+  await failurePage.waitForFunction(() =>
+    document
+      .querySelector('#map-network-status')
+      ?.textContent.includes('연결 실패'),
+  );
+  assert.equal(await failurePage.locator('#map-retry').isVisible(), true);
+  await context.unroute('https://tile.openstreetmap.org/**');
+  await context.route('https://tile.openstreetmap.org/**', (r) =>
+    r.fulfill({
+      contentType: 'image/png',
+      body: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a4kQAAAAASUVORK5CYII=',
+        'base64',
+      ),
+    }),
+  );
+  await failurePage.locator('#map-retry').click();
+  await failurePage.waitForFunction(() =>
+    document
+      .querySelector('#map-network-status')
+      ?.textContent.includes('연결됨'),
+  );
+  await failurePage.close();
   await page.goto(base + '/web/#sources', { waitUntil: 'domcontentloaded' });
   await page.locator('.source-policy-row').first().waitFor();
   assert.match(await page.locator('#app').innerText(), /상업 이용 금지/);
@@ -315,6 +466,9 @@ try {
         'backup/export/merge',
         'unknown stays null',
         'all44/filter/url',
+        'map/list separation and pan/zoom',
+        'map selection and viewport preservation',
+        'tile failure and retry',
         'personal map pin',
         'boundary import/reject preservation',
         '1440/768/390/320 layout',

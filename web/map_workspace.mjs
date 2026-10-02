@@ -41,11 +41,11 @@ export function mapWorkspaceHtml({
 } = {}) {
   const selected = projects.find((p) => p.id === selectedId);
   return (
-    '<section class="map-workspace" aria-label="지도 탐색"><div class="map-toolbar"><span class="map-caption">서울 · 배경지도</span><div class="map-tools"><button class="secondary" type="button" id="map-seoul">서울 전체</button><button class="secondary" type="button" id="map-fit">표시한 위치</button><button class="secondary" type="button" id="map-options" aria-expanded="false" aria-controls="map-import-panel">지도 자료</button></div></div><div id="map-canvas" class="map-canvas" aria-label="서울 배경지도. 구역 경계와 사용자 위치는 별도로 표시합니다."></div><div class="map-status-line"><span id="map-data-status" role="status">' +
+    '<section class="map-workspace" aria-label="지도 탐색"><div class="map-toolbar"><span class="map-caption">서울</span><span id="map-network-status" class="map-network-status" role="status">배경지도 연결 중</span><div class="map-tools"><button class="secondary" type="button" id="map-seoul">서울 전체</button><button class="secondary" type="button" id="map-fit">표시한 위치</button><button class="secondary" type="button" id="map-retry" hidden>다시 연결</button><button class="secondary" type="button" id="map-options" aria-expanded="false" aria-controls="map-import-panel">지도 자료</button></div></div><div id="map-canvas" class="map-canvas" tabindex="0" role="region" aria-label="지도. 드래그로 이동, 휠이나 더하기·빼기로 확대·축소, 방향키로 이동할 수 있습니다."></div><div class="map-view-readout"><span id="map-zoom-level"></span><span>드래그로 이동 · 휠로 확대</span></div><div class="map-status-line"><span id="map-data-status" role="status">' +
     (boundaryCount
       ? '경계 ' + boundaryCount + '개'
       : '배경지도 · 구역 경계 미연결') +
-    '</span><a href="#sources">출처·이용조건</a></div><div id="map-source-attribution" class="map-source-attribution"></div><div id="map-import-panel" class="map-import-panel" hidden><h3>내 지도 자료</h3><p class="meta">직접 표시한 위치는 내 참고용입니다. 구역 경계·사업장 공식 위치를 확정하지 않습니다.</p><form id="map-pin-form"><div class="form-grid"><label class="field">연결할 구역<select name="project_id">' +
+    '</span><a href="#sources">출처·이용조건</a></div><div id="map-source-attribution" class="map-source-attribution"></div><div id="map-import-panel" class="map-import-panel" hidden><div class="map-panel-heading"><h3>내 지도 자료</h3><button type="button" class="quiet-button" id="map-panel-close" aria-label="지도 자료 닫기">닫기 ×</button></div><p class="meta">직접 표시한 위치는 내 참고용입니다. 구역 경계·사업장 공식 위치를 확정하지 않습니다.</p><form id="map-pin-form"><div class="form-grid"><label class="field">연결할 구역<select name="project_id">' +
     projects
       .map(
         (p) =>
@@ -69,24 +69,53 @@ export function mountMapWorkspace({
   selectedId,
   boundaries,
   onSelect = () => {},
+  onData = () => {},
+  onViewChange = () => {},
+  viewState = null,
 } = {}) {
   const node = document.getElementById('map-canvas');
   if (!node) return () => {};
+  let disposed = false;
   const map = L.map(node, {
     zoomControl: false,
-    scrollWheelZoom: false,
+    scrollWheelZoom: true,
+    minZoom: 9,
+    maxZoom: 19,
     attributionControl: true,
   }).setView([37.548, 126.99], 11);
-  L.control.zoom({ position: 'bottomright' }).addTo(map);
+  if (
+    viewState &&
+    Array.isArray(viewState.center) &&
+    viewState.center.every(Number.isFinite) &&
+    Number.isFinite(viewState.zoom)
+  )
+    map.setView(viewState.center, viewState.zoom);
+  L.control
+    .zoom({ position: 'topright', zoomInTitle: '확대', zoomOutTitle: '축소' })
+    .addTo(map);
+  L.control.scale({ position: 'bottomleft', imperial: false }).addTo(map);
+  const syncView = () => {
+    if (disposed) return;
+    const center = map.getCenter();
+    const value = { center: [center.lat, center.lng], zoom: map.getZoom() };
+    node.dataset.zoom = String(value.zoom);
+    node.dataset.center = value.center.join(',');
+    document.getElementById('map-zoom-level').textContent =
+      '확대 ' + value.zoom;
+    onViewChange(value);
+  };
+  map.on('moveend zoomend', syncView);
+  syncView();
   map.attributionControl.setPrefix(
     '<a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a>',
   );
   const group = L.featureGroup().addTo(map),
     status = document.getElementById('map-data-status');
-  let disposed = false,
-    state,
+  let state,
     context,
-    placing = false;
+    placing = false,
+    tileLayer = null;
+  const projectLayers = new Map();
   const inform = (message) => {
     if (!disposed) status.textContent = message;
   };
@@ -103,6 +132,8 @@ export function mountMapWorkspace({
   };
   const renderLayers = () => {
     group.clearLayers();
+    projectLayers.clear();
+    const records = [];
     let hidden = 0;
     const attributions = new Set();
     for (const pin of state.pins) {
@@ -124,6 +155,14 @@ export function mountMapWorkspace({
         .bindTooltip(label)
         .addTo(group);
       marker.on('click', () => onSelect(pin.project_id));
+      if (!projectLayers.has(pin.project_id))
+        projectLayers.set(pin.project_id, L.featureGroup());
+      projectLayers.get(pin.project_id).addLayer(marker);
+      records.push({
+        project_id: pin.project_id,
+        kind: 'USER_ASSUMPTION',
+        label: '직접 표시한 참고 위치',
+      });
     }
     for (const feature of [
       ...(boundaries?.features || []),
@@ -156,6 +195,18 @@ export function mountMapWorkspace({
           : own
             ? '직접 작성한 참고경계'
             : '행정 참고경계');
+      if (!projectLayers.has(feature.properties.project_id))
+        projectLayers.set(feature.properties.project_id, L.featureGroup());
+      projectLayers.get(feature.properties.project_id).addLayer(layer);
+      records.push({
+        project_id: feature.properties.project_id,
+        kind: review.kind,
+        label: own
+          ? '직접 작성한 참고경계'
+          : official
+            ? '검토 기록이 있는 경계'
+            : '행정 참고경계',
+      });
       layer
         .bindTooltip(label)
         .on('click', () => onSelect(feature.properties.project_id));
@@ -172,6 +223,7 @@ export function mountMapWorkspace({
     );
     const footer = document.getElementById('map-source-attribution');
     footer.textContent = [...attributions].join(' · ');
+    onData(records);
   };
   const listeners = [];
   const listen = (id, event, handler) => {
@@ -201,34 +253,59 @@ export function mountMapWorkspace({
       };
       state = readState();
       if (config.tile_url) {
-        const tiles = L.tileLayer(config.tile_url, {
+        tileLayer = L.tileLayer(config.tile_url, {
           maxZoom: 19,
           minZoom: 9,
           keepBuffer: 0,
           updateWhenIdle: true,
           attribution: config.attribution,
-        }).addTo(map);
-        let loaded = false;
-        tiles.on('tileload', () => {
-          loaded = true;
         });
-        tiles.on('tileerror', () => {
-          if (!loaded)
-            inform(
-              '배경지도를 불러오지 못했습니다. 내 위치·경계 자료는 계속 사용할 수 있습니다.',
-            );
+        const network = document.getElementById('map-network-status');
+        const retry = document.getElementById('map-retry');
+        let loaded = 0,
+          failed = 0;
+        tileLayer.on('loading', () => {
+          loaded = 0;
+          failed = 0;
+          network.textContent = '배경지도 연결 중';
         });
+        tileLayer.on('tileload', () => {
+          loaded++;
+          network.textContent = failed
+            ? '일부 지도 연결 실패'
+            : '배경지도 연결됨';
+        });
+        tileLayer.on('tileerror', () => {
+          failed++;
+          network.textContent = loaded
+            ? '일부 지도 연결 실패'
+            : '배경지도 연결 실패';
+          retry.hidden = false;
+        });
+        tileLayer.on('load', () => {
+          retry.hidden = failed === 0;
+        });
+        tileLayer.addTo(map);
+      } else {
+        document.getElementById('map-network-status').textContent =
+          '배경지도 설정 확인 필요';
       }
       renderLayers();
-      const selectedPin = state.pins.find((p) => p.project_id === selectedId);
-      if (selectedPin)
-        map.setView([selectedPin.latitude, selectedPin.longitude], 14);
+      if (!viewState) {
+        const selected = projectLayers.get(selectedId);
+        if (selected?.getLayers().length)
+          map.fitBounds(selected.getBounds(), {
+            padding: [40, 40],
+            maxZoom: 16,
+          });
+      }
     } catch {
       inform(
         '지도 설정 또는 저장 자료를 읽지 못했습니다. 기존 자료를 덮어쓰지 않습니다.',
       );
     }
   })();
+  listen('map-retry', 'click', () => tileLayer?.redraw());
   listen('map-seoul', 'click', () => map.setView([37.548, 126.99], 11));
   listen('map-fit', 'click', () =>
     group.getLayers().length
@@ -241,16 +318,43 @@ export function mountMapWorkspace({
     event.currentTarget.setAttribute('aria-expanded', String(!panel.hidden));
     map.invalidateSize();
   });
+  listen('map-panel-close', 'click', () => {
+    document.getElementById('map-import-panel').hidden = true;
+    document
+      .getElementById('map-options')
+      .setAttribute('aria-expanded', 'false');
+    document.getElementById('map-options').focus();
+  });
   listen('map-place-pin', 'click', () => {
     placing = true;
+    node.classList.add('placing-pin');
+    document.getElementById('map-import-panel').hidden = true;
+    document
+      .getElementById('map-options')
+      .setAttribute('aria-expanded', 'false');
     inform(
       '지도를 한 번 눌러 위치를 지정하세요. 공식 위치로 확정하지 않습니다.',
     );
     node.focus();
   });
+  listen('map-canvas', 'keydown', (event) => {
+    if (event.key !== 'Escape' || !placing) return;
+    placing = false;
+    node.classList.remove('placing-pin');
+    document.getElementById('map-import-panel').hidden = false;
+    document
+      .getElementById('map-options')
+      .setAttribute('aria-expanded', 'true');
+    inform('위치 지정을 취소했습니다.');
+  });
   map.on('click', (event) => {
     if (!placing) return;
     placing = false;
+    node.classList.remove('placing-pin');
+    document.getElementById('map-import-panel').hidden = false;
+    document
+      .getElementById('map-options')
+      .setAttribute('aria-expanded', 'true');
     const form = document.getElementById('map-pin-form');
     form.elements.latitude.value = event.latlng.lat.toFixed(7);
     form.elements.longitude.value = event.latlng.lng.toFixed(7);
@@ -261,7 +365,7 @@ export function mountMapWorkspace({
     event.preventDefault();
     event.stopPropagation();
     await ready;
-    if (!state || !context) return;
+    if (disposed || !state || !context) return;
     try {
       const fd = new FormData(event.target),
         pin = makePersonalPin(
@@ -295,7 +399,7 @@ export function mountMapWorkspace({
   listen('map-boundary-file', 'change', async (event) => {
     await ready;
     const file = event.target.files[0];
-    if (!file || !state || !context) return;
+    if (disposed || !file || !state || !context) return;
     try {
       if (file.size > 2 * 1024 * 1024)
         throw Error('경계 파일은 2MB 이하로 가져오세요.');
@@ -316,7 +420,7 @@ export function mountMapWorkspace({
   });
   listen('map-clear-pins', 'click', async () => {
     await ready;
-    if (!state) return;
+    if (disposed || !state) return;
     const previous = state;
     state = { ...state, pins: [] };
     if (!persist()) {
@@ -325,12 +429,45 @@ export function mountMapWorkspace({
     }
     renderLayers();
   });
-  const resize = new ResizeObserver(() => map.invalidateSize());
+  const resize = new ResizeObserver(() => {
+    if (!disposed) map.invalidateSize();
+  });
   resize.observe(node);
-  return () => {
+  const cleanup = () => {
     disposed = true;
     resize.disconnect();
     listeners.forEach((remove) => remove());
+    map.stop();
     map.remove();
   };
+  cleanup.focusProject = async (id) => {
+    await ready;
+    if (disposed) return false;
+    const layer = projectLayers.get(id);
+    if (!layer?.getLayers().length) {
+      inform(
+        '선택한 구역의 위치가 미연결입니다. 참고 위치를 지정할 수 있습니다.',
+      );
+      return false;
+    }
+    map.fitBounds(layer.getBounds(), { padding: [40, 40], maxZoom: 16 });
+    inform('선택한 구역의 참고 위치·경계로 이동했습니다.');
+    return true;
+  };
+  cleanup.openPanel = (id) => {
+    const panel = document.getElementById('map-import-panel');
+    panel.hidden = false;
+    document
+      .getElementById('map-options')
+      .setAttribute('aria-expanded', 'true');
+    const form = document.getElementById('map-pin-form');
+    if (projects.some((p) => p.id === id)) {
+      form.elements.project_id.value = id;
+      form.elements.label.value = projects.find(
+        (p) => p.id === id,
+      ).canonical_name;
+    }
+    form.elements.latitude.focus();
+  };
+  return cleanup;
 }
