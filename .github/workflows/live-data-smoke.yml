@@ -32,6 +32,26 @@ on:
         required: false
         default: "0000"
         type: string
+      plat_gb_cd:
+        description: "건축물 대지구분 (0 대지 / 1 산 / 2 블록)"
+        required: false
+        default: "0"
+        type: string
+      all_pages:
+        description: "제공기관 totalCount와 페이지 메타데이터로 전페이지 조회 검증"
+        required: false
+        default: false
+        type: boolean
+      max_pages:
+        description: "전페이지 조회 상한 (최대100, 상한 도달은 PARTIAL_CAP)"
+        required: false
+        default: "20"
+        type: string
+      num_of_rows:
+        description: "전페이지 조회 페이지 크기 (최대1000)"
+        required: false
+        default: "100"
+        type: string
 
 permissions:
   contents: read
@@ -40,6 +60,10 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        service_type: [RH, APT, SH]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -55,6 +79,11 @@ jobs:
           SMOKE_BJDONG_CD: ${{ inputs.bjdong_cd }}
           SMOKE_BUN: ${{ inputs.bun }}
           SMOKE_JI: ${{ inputs.ji }}
+          SMOKE_PLAT_GB_CD: ${{ inputs.plat_gb_cd }}
+          SMOKE_ALL_PAGES: ${{ inputs.all_pages }}
+          SMOKE_MAX_PAGES: ${{ inputs.max_pages }}
+          SMOKE_NUM_OF_ROWS: ${{ inputs.num_of_rows }}
+          SMOKE_SERVICE_TYPE: ${{ matrix.service_type }}
         run: |
           set -o pipefail
           mkdir -p runtime/live-smoke
@@ -63,6 +92,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: live-data-smoke-summary
+          name: ${{ matrix.service_type == 'RH' && 'live-data-smoke-summary' || format('live-data-smoke-summary-{0}', matrix.service_type) }}
           path: runtime/live-smoke/summary.json
           retention-days: 7

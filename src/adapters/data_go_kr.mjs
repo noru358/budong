@@ -14,6 +14,24 @@ export const ENDPOINTS=Object.freeze({
   BUILDING_HUB_JIJIGU:"https://apis.data.go.kr/1613000/BldRgstHubService/getBrJijiguInfo"
 });
 
+export const RTMS_SERVICES=Object.freeze({
+  RH:Object.freeze({endpoint:ENDPOINTS.RTMS_MULTIFAMILY_SALE,sourceId:"MOLIT_RTMS_MULTIFAMILY_SALE",name:"연립다세대 매매"}),
+  APT:Object.freeze({endpoint:ENDPOINTS.RTMS_APT_SALE_DETAIL,sourceId:"MOLIT_RTMS_APT_SALE_DETAIL",name:"아파트 매매 상세"}),
+  SH:Object.freeze({endpoint:ENDPOINTS.RTMS_DETACHED_SALE,sourceId:"MOLIT_RTMS_DETACHED_SALE",name:"단독/다가구 매매"})
+});
+
+export function rtmsService(serviceType="RH"){
+  if(!Object.hasOwn(RTMS_SERVICES,serviceType))throw new Error("serviceType must be RH, APT or SH");
+  return RTMS_SERVICES[serviceType];
+}
+
+function rtmsArgs(args){
+  const selected=rtmsService(args.serviceType??"RH");
+  if(args.endpoint&&args.endpoint!==selected.endpoint)throw new Error("RTMS endpoint must match allowlisted serviceType");
+  if(args.sourceId&&args.sourceId!==selected.sourceId)throw new Error("RTMS sourceId must match serviceType");
+  return {...args,endpoint:selected.endpoint,sourceId:selected.sourceId};
+}
+
 function checkCode(value,n,name){
   const s=String(value??"").trim();
   if(!new RegExp("^\\d{"+n+"}$").test(s)) throw new Error(name+" must be "+n+" digits");
@@ -218,6 +236,7 @@ export function normalizeRtmsTradeItem(raw,{sourceId="MOLIT_RTMS_MULTIFAMILY_SAL
     deal_date:isoDate(raw.dealYear,raw.dealMonth,raw.dealDay),
     deal_amount_10k_krw:numberOrNull(raw.dealAmount),
     exclusive_area_m2:numberOrNull(raw.excluUseAr),
+    total_floor_area_m2:numberOrNull(raw.totalFloorAr),
     land_area_m2:numberOrNull(raw.landAr??raw.plottageAr),
     floor:numberOrNull(raw.floor),
     build_year:numberOrNull(raw.buildYear),
@@ -293,6 +312,30 @@ export function normalizeBuildingTitleItem(raw,{observedAt=new Date().toISOStrin
   return out;
 }
 
+function validatePageMetadata(body,{pageNo,numOfRows}){
+  const values={total_count:body.totalCount,page_no:body.pageNo,num_of_rows:body.numOfRows};
+  for(const [name,value] of Object.entries(values)){
+    if(!/^\d+$/.test(String(value??""))||!Number.isSafeInteger(Number(value)))throw new Error("Missing or invalid API pagination metadata: "+name);
+    values[name]=Number(value);
+  }
+  if(values.page_no!==Number(pageNo)||values.num_of_rows!==Number(numOfRows)||values.num_of_rows<1)
+    throw new Error("API pagination metadata does not match request");
+  return values;
+}
+
+export function parseRtmsPage(xml,{pageNo=1,numOfRows=100,env=process.env}={}){
+  const rows=parseFlatXmlItems(xml,{env,pageNo,numOfRows});
+  const body=xmlValue(String(xml),"body");
+  const metadata=validatePageMetadata({totalCount:decodeXml(xmlValue(body,"totalCount")),
+    pageNo:decodeXml(xmlValue(body,"pageNo")),numOfRows:decodeXml(xmlValue(body,"numOfRows"))},{pageNo,numOfRows});
+  return {rows,...metadata};
+}
+
+export function parseBuildingPage(json,{pageNo=1,numOfRows=100,env=process.env}={}){
+  const rows=extractBuildingHubItems(json,{env,pageNo,numOfRows});
+  return {rows,...validatePageMetadata(json.response.body,{pageNo,numOfRows})};
+}
+
 async function requestText({url,service,accept,fetchImpl,timeoutMs,env}){
   const ms=positiveInt(timeoutMs,"timeoutMs");
   const ctrl=new AbortController();
@@ -338,6 +381,7 @@ async function requestWithServiceKeyCandidates({env,makeUrl,...options}){
 
 export async function fetchRtmsTrades({env=process.env,fetchImpl=environmentFetch,timeoutMs=20000,...args}){
   try{
+    args=rtmsArgs(args);
     const xml=await requestWithServiceKeyCandidates({makeUrl:key=>buildRtmsUrl({env,...args,serviceKey:key}),service:"RTMS",accept:"application/xml,text/xml;q=0.9,*/*;q=0.1",fetchImpl,timeoutMs,env});
     return parseFlatXmlItems(xml,{env,pageNo:args.pageNo??1,numOfRows:args.numOfRows??1000}).map(raw=>normalizeRtmsTradeItem(raw,{
       sourceId:args.sourceId||"MOLIT_RTMS_MULTIFAMILY_SALE",
@@ -363,4 +407,69 @@ export async function fetchBuildingTitles({env=process.env,fetchImpl=environment
     if(err instanceof PublicApiError)throw err;
     throw new Error(sanitizeApiError(err,{env}));
   }
+}
+
+async function fetchRtmsPage({env,fetchImpl,timeoutMs,...args}){
+  const xml=await requestWithServiceKeyCandidates({makeUrl:key=>buildRtmsUrl({env,...args,serviceKey:key}),
+    service:"RTMS",accept:"application/xml,text/xml;q=0.9",fetchImpl,timeoutMs,env});
+  const page=parseRtmsPage(xml,{env,pageNo:args.pageNo,numOfRows:args.numOfRows});
+  return {...page,rows:page.rows.map(raw=>normalizeRtmsTradeItem(raw,{sourceId:args.sourceId||"MOLIT_RTMS_MULTIFAMILY_SALE",observedAt:args.observedAt}))};
+}
+
+async function fetchBuildingPage({env,fetchImpl,timeoutMs,...args}){
+  const text=await requestWithServiceKeyCandidates({makeUrl:key=>buildBuildingHubUrl({env,...args,serviceKey:key}),
+    service:"Building HUB",accept:"application/json,application/xml;q=0.9",fetchImpl,timeoutMs,env});
+  if(text.trimStart().startsWith("<")){
+    throwXmlProviderError(text,{service:"Building HUB",env});
+    throw new Error("Building HUB expected JSON success response; received XML");
+  }
+  let json;try{json=JSON.parse(text);}catch{throw new Error("Malformed Building HUB JSON response");}
+  const page=parseBuildingPage(json,{env,pageNo:args.pageNo,numOfRows:args.numOfRows});
+  return {...page,rows:page.rows.map(raw=>normalizeBuildingTitleItem(raw,{observedAt:args.observedAt}))};
+}
+
+// Entire requested district/month or parcel query, not all project data. A cap
+// returns explicitly partial rows; inconsistent pagination fails closed.
+async function collectPages(fetchPage,{env=process.env,fetchImpl=environmentFetch,timeoutMs=20000,
+  maxDurationMs=60000,maxPages=20,numOfRows=100,observedAt=new Date().toISOString(),...args},request,scope){
+  const limit=positiveInt(maxPages,"maxPages"),size=positiveInt(numOfRows,"numOfRows");
+  const budget=positiveInt(maxDurationMs,"maxDurationMs"),timeout=positiveInt(timeoutMs,"timeoutMs");
+  if(limit>100||size>1000||budget>120000)throw new Error("Pagination cap must be maxPages<=100, numOfRows<=1000, maxDurationMs<=120000");
+  if(args.pageNo!==undefined&&Number(args.pageNo)!==1)throw new Error("All-pages collection must start at pageNo 1");
+  const started=Date.now(),rows=[],pages=[],fingerprints=new Set();
+  let total=null;
+  try{
+    for(let pageNo=1;pageNo<=limit;pageNo++){
+      const remaining=budget-(Date.now()-started);
+      if(remaining<1)throw new Error("API pagination time budget exceeded");
+      const page=await fetchPage({...args,env,fetchImpl,timeoutMs:Math.min(timeout,remaining),observedAt,pageNo,numOfRows:size});
+      if(total!==null&&page.total_count!==total)throw new Error("API totalCount changed during pagination; retry a stable snapshot");
+      total=page.total_count;
+      const expected=Math.min(size,Math.max(0,total-(pageNo-1)*size));
+      if(page.rows.length!==expected)throw new Error("API incomplete page; totalCount and row count disagree");
+      const fingerprint=JSON.stringify(page.rows);
+      if(page.rows.length&&fingerprints.has(fingerprint))throw new Error("API repeated page; cannot verify pagination coverage");
+      fingerprints.add(fingerprint);rows.push(...page.rows);
+      pages.push({page_no:pageNo,num_of_rows:size,row_count:page.rows.length,total_count:total});
+      if(rows.length===total)return {rows,total_count:total,page_count:pages.length,pages,coverage:"COMPLETE",
+        stop_reason:"TOTAL_COUNT_REACHED",request:{...request,num_of_rows:size,max_pages:limit},observed_at:observedAt,scope,project_linkage_validated:false};
+    }
+    return {rows,total_count:total,page_count:pages.length,pages,coverage:"PARTIAL_CAP",stop_reason:"MAX_PAGES",
+      request:{...request,num_of_rows:size,max_pages:limit},observed_at:observedAt,scope,project_linkage_validated:false};
+  }catch(error){
+    if(error instanceof PublicApiError)throw error;
+    throw new Error(sanitizeApiError(error,{env}));
+  }
+}
+
+export async function fetchAllRtmsTrades(args){
+  const selected=rtmsArgs(args);
+  return collectPages(fetchRtmsPage,selected,{lawd_cd:checkCode(args.lawdCd,5,"LAWD_CD"),deal_ymd:checkCode(args.dealYmd,6,"DEAL_YMD"),
+    service_type:args.serviceType??"RH",source_id:selected.sourceId},"DISTRICT_MONTH_REFERENCE");
+}
+
+export async function fetchAllBuildingTitles(args){
+  return collectPages(fetchBuildingPage,args,{sigungu_cd:checkCode(args.sigunguCd,5,"sigunguCd"),
+    bjdong_cd:checkCode(args.bjdongCd,5,"bjdongCd"),plat_gb_cd:String(args.platGbCd??"0"),
+    bun:checkCode(args.bun,4,"bun"),ji:checkCode(args.ji??"0000",4,"ji")},"PARCEL_REFERENCE");
 }

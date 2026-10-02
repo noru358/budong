@@ -20,7 +20,7 @@ test("smoke defaults to Seoul current month and reports empty results as connect
   assert.equal(result.scope,"CONNECTIVITY_ONLY");
   assert.deepEqual(result.services.map(s=>s.data_presence),["NO_ROWS","NO_ROWS"]);
   assert.equal(urls.find(rtmsUrl).searchParams.get("DEAL_YMD"),"202610");
-  assert.deepEqual(result.services[0].request,{lawd_cd:"11590",deal_ymd:"202610",page_no:1,num_of_rows:10});
+  assert.deepEqual(result.services[0].request,{lawd_cd:"11590",deal_ymd:"202610",service_type:"RH",page_no:1,num_of_rows:10});
   assert.equal(result.services[0].coverage,"FIRST_PAGE_ONLY");
   assert.ok(!JSON.stringify(result).includes(env.DATA_GO_KR_SERVICE_KEY));
 });
@@ -71,4 +71,21 @@ test("smoke diagnostic allowlist does not persist malformed query values or endp
   assert.equal(result.services[0].request.lawd_cd,null);
   assert.ok(!JSON.stringify(result).includes(env.DATA_GO_KR_SERVICE_KEY));
   assert.ok(!JSON.stringify(result).includes("invalid.test"));
+});
+
+test("all-page smoke returns provider totals and a cap is explicit incomplete coverage",async()=>{
+  const options=readSmokeOptions(["--all-pages","true","--max-pages","1","--num-of-rows","1"],{});
+  const result=await runLiveDataSmoke({env,now,options,fetchImpl:async url=>reply(rtmsUrl(url)?
+    '<response><header><resultCode>000</resultCode></header><body><items><item><jibun>1</jibun></item></items><totalCount>2</totalCount><pageNo>1</pageNo><numOfRows>1</numOfRows></body></response>':
+    JSON.stringify({response:{header:{resultCode:"00"},body:{items:"",totalCount:0,pageNo:1,numOfRows:1}}}))});
+  assert.equal(result.scope,"QUERY_COVERAGE_ONLY");assert.equal(result.connectivity_ok,true);assert.equal(result.ok,false);
+  assert.equal(result.services[0].coverage,"PARTIAL_CAP");assert.equal(result.services[0].total_count,2);
+  assert.equal(result.services[1].coverage,"COMPLETE");
+  assert.equal(result.project_linkage_validated,false);
+});
+
+test("invalid all-page service parameters remain independently diagnosed",async()=>{
+  const result=await runLiveDataSmoke({env,now,options:{allPages:true,lawdCd:"invalid"},fetchImpl:async()=>reply(
+    JSON.stringify({response:{header:{resultCode:"00"},body:{items:"",totalCount:0,pageNo:1,numOfRows:100}}}))});
+  assert.equal(result.services[0].connectivity,"FAILED");assert.equal(result.services[1].connectivity,"OK");
 });
