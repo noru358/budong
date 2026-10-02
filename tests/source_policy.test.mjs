@@ -98,3 +98,27 @@ test('license view lists source-specific labels without turning verification int
   assert.equal(evaluateSourceOperation(source('MOLIT_BUILDING_HUB'),{mode:'unknown',operation:'normalize'}).enabled,false);
   assert.equal(evaluateSourceOperation(source('MOLIT_BUILDING_HUB'),{operation:'unknown'}).enabled,false);
 });
+
+test('private-copy source requires enforced local context and never grants public nonprofit reuse',()=>{
+  const s=source('SEOUL_URBAN_PLAN_GEOJSON');
+  assert.equal(evaluateSourceOperation(s,{operation:'map_display'}).enabled,false);
+  assert.equal(evaluateSourceOperation(s,{operation:'map_display',runtimeContext:'PUBLIC'}).enabled,false);
+  assert.equal(evaluateSourceOperation(s,{operation:'map_display',runtimeContext:'LOCAL_PRIVATE'}).enabled,true);
+  assert.equal(evaluateSourceOperation(s,{mode:'COMMERCIAL',operation:'map_display',runtimeContext:'LOCAL_PRIVATE'}).enabled,false);
+  assert.equal(evaluateSourceOperation(s,{operation:'redistribute',runtimeContext:'LOCAL_PRIVATE'}).enabled,false);
+  const bulk=evaluateSourceOperation(s,{operation:'bulk_collect',runtimeContext:'LOCAL_PRIVATE'});
+  assert.equal(bulk.prohibited,true);
+  assert.doesNotMatch(bulk.reason,/제공기관 정책/);
+  assert.equal(evaluateSourceOperation(s,{operation:'geometry_transform',runtimeContext:'LOCAL_PRIVATE'}).enabled,false);
+  assert.equal(evaluateSourceOperation(s,{mode:'COMMERCIAL',operation:'view_original',runtimeContext:'PUBLIC'}).enabled,true);
+  assert.match(getSourceUsePolicy(s).labels.personal,/사적 이용/);
+  assert.match(getSourceUsePolicy(s).legal_basis,/NOT_PROVIDER_LICENSE/);
+});
+
+test('local private context cannot override known no-derivatives or an unreviewed source',()=>{
+  assert.equal(evaluateSourceOperation(source('SEOUL_OPEN_BOUNDARY_SHP'),{operation:'geometry_transform',runtimeContext:'LOCAL_PRIVATE'}).status,'no_derivatives');
+  assert.equal(evaluateSourceOperation(source('VWORLD_WFS_WMS'),{operation:'map_display',runtimeContext:'LOCAL_PRIVATE'}).enabled,false);
+  const mixed=evaluateDerivedSourceUse([source('SEOUL_URBAN_PLAN_GEOJSON'),source('OSM_STANDARD_TILES')],{operation:'map_display',runtimeContext:'PUBLIC'});
+  assert.equal(mixed.enabled,false);
+  assert.equal(evaluateDerivedSourceUse([source('SEOUL_URBAN_PLAN_GEOJSON'),source('OSM_STANDARD_TILES')],{operation:'map_display',runtimeContext:'LOCAL_PRIVATE'}).enabled,true);
+});

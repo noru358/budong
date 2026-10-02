@@ -92,6 +92,12 @@ export function createAppServer({
     } catch {
       return send(400, { error: '요청 주소를 확인하세요.' });
     }
+    // Private geometry is available only on a direct loopback connection.
+    // A tunnel/domain or a server bound to a public interface is not private use.
+    const loopback = (address) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(address);
+    const localPrivate = loopback(req.socket.localAddress) && loopback(req.socket.remoteAddress) &&
+      /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(req.headers.host || '') &&
+      loopback(res.socket?.server?.address()?.address);
     if (url.pathname === '/api/health')
       return send(200, {
         status: 'ok',
@@ -102,6 +108,7 @@ export function createAppServer({
     if (url.pathname === '/api/map-config')
       return send(200, {
         mode,
+        runtime_context: localPrivate ? 'LOCAL_PRIVATE' : 'PUBLIC',
         tile_url: tileUrl,
         attribution:
           tileOrigin === 'https://tile.openstreetmap.org'
@@ -220,6 +227,8 @@ export function createAppServer({
     } catch {
       return send(400, { error: '주소를 확인하세요.' });
     }
+    if (pathname === '/data/boundaries_v1.geojson' && (!localPrivate || mode !== 'PERSONAL'))
+      return send(403, { error: '행정 참고경계는 로컬 개인용 환경에서만 표시합니다.' });
     if (pathname.endsWith('/')) pathname += 'index.html';
     if (
       !/^\/(web|src|data)\//.test(pathname) ||
@@ -237,10 +246,12 @@ export function createAppServer({
       const real = await fs.realpath(full);
       if (!real.startsWith(rootPath + path.sep))
         return send(404, { error: '파일을 찾지 못했습니다.' });
+      if (real === path.resolve(root, 'data/boundaries_v1.geojson') && (!localPrivate || mode !== 'PERSONAL'))
+        return send(403, { error: '행정 참고경계는 로컬 개인용 환경에서만 표시합니다.' });
       const body = await fs.readFile(real);
       res.writeHead(200, {
         'content-type': type,
-        'cache-control': 'no-cache',
+        'cache-control': real === path.resolve(root, 'data/boundaries_v1.geojson') ? 'no-store' : 'no-cache',
         'x-content-type-options': 'nosniff',
         'referrer-policy': 'strict-origin-when-cross-origin',
         'content-security-policy':
@@ -271,6 +282,6 @@ if (
     process.exitCode = 1;
   });
   server.listen(port, host, () =>
-    console.log(`budong 개인 V3 서버 시작 (port ${port})`),
+    console.log(`budong 개인 V5 서버 시작 (port ${port})`),
   );
 }

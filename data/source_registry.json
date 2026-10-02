@@ -583,8 +583,8 @@
         "attribution_required": null,
         "verified": false,
         "reviewed_at": null,
-        "conditions_url": null,
-        "scope_note": "VWorld 제공 레이어·API 약관·저장 및 재제공 조건을 아직 확인하지 못했습니다.",
+        "conditions_url": "https://www.vworld.kr/v4po_prcint_a001.do",
+        "scope_note": "현재 공식 약관 제19조는 제공 데이터의 사전 승낙 없는 무단 저장 등을 제한한다. 저작권정책은 공공데이터의 영리 활용을 보장하나 자료별 자유이용 표시를 확인하도록 안내한다. 특정 WFS/WMS 레이어의 별도 이용조건·저장·가공 허락은 미확인.",
         "operation_permissions": {
           "view_original": "requires_review",
           "raw_download": "requires_review",
@@ -595,7 +595,18 @@
           "bulk_collect": "requires_review",
           "redistribute": "requires_review"
         },
-        "evidence": []
+        "evidence": [
+          {
+            "url": "https://www.vworld.kr/v4po_prcint_a001.do",
+            "checked_at": "2026-10-03",
+            "observed_statement": "현재 이용약관(2023-08-18 시행)의 제19조는 사전 승낙 없는 복사·복제·변경 등 및 데이터 무단 저장을 제한한다. 구버전 dev약관 URL은 현재 메인페이지로 연결돼 실제현행 footer URL을 확인했다."
+          },
+          {
+            "url": "https://www.vworld.kr/v4po_prcint_a006.do",
+            "checked_at": "2026-10-03",
+            "observed_statement": "저작권정책은 자유이용 자료의 공공누리 표시 확인, 미표시 자료의 사전 협의, 공공데이터의 영리목적 포함 자유 활용 및 제3자권리 제외를 안내한다. 개별 레이어의 무제한 저장 허락으로 해석하지 않는다."
+          }
+        ]
       },
       "catalog_url": "https://www.vworld.kr"
     },
@@ -863,9 +874,81 @@
         "evidence": [],
         "basis": "USER_AUTHORED_APP_INPUT_CONTRACT"
       }
+    },
+    {
+      "source_id": "SEOUL_URBAN_PLAN_GEOJSON",
+      "name": "서울도시공간포털 정비사업구역계 공개 GeoJSON",
+      "institution": "서울특별시 도시공간포털",
+      "purpose": "공식 지도에 공개된 정비사업구역계의 제한된 비영리 사적 참고",
+      "readiness": "YELLOW",
+      "catalog_url": "https://urban.seoul.go.kr/view/map/main.html",
+      "license_note": "기관의 외부 재사용 허락을 확보한 자료가 아님. 저작권법 제30·36·94조에 근거한 이 기기 내 비영리 사적 참고 계약이며 공개·공유·상업 이용은 별도 검토.",
+      "use_policy": {
+        "license_id": "STATUTORY_PRIVATE_COPY_REVIEW",
+        "legal_basis": "COPYRIGHT_ACT_30_36_94_APP_REVIEW_NOT_PROVIDER_LICENSE",
+        "personal_use": "allowed",
+        "commercial_use": "requires_review",
+        "modification": "requires_review",
+        "required_runtime_context": "LOCAL_PRIVATE",
+        "attribution_required": true,
+        "attribution_text": "서울특별시 서울도시공간포털 · 정비사업구역계 · 조회 2026-10-03 · 법적 효력 없는 참고 경계 · 이 기기 내 비영리 사적 이용",
+        "verified": true,
+        "reviewed_at": "2026-10-03",
+        "conditions_url": "https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1029423199",
+        "scope_note": "공식 공개 지도서비스의 UPIS_C_UQ120에서 서버가 직접 제공하는 WGS84 GeoJSON 중 검토한 개별 구역을 영리 목적 없이 이 기기 내에서 사적으로 참고하는 범위. 공공누리 재사용 허락이나 공식 법적 경계 검증이 아니다. SHP 변환, 대량수집, 제3자전송, 공개 웹서비스, 영리업무 이용에는 적용하지 않는다.",
+        "conditions": [
+          "서버와 접속자가 모두 loopback이며 Host도 localhost/127.0.0.1/[::1]인 경우에만 LOCAL_PRIVATE를 부여합니다.",
+          "PERSONAL 모드라도 공개 웹서비스나 공유는 허용하지 않습니다. 영리업무·매매 영업 목적으로 사용하지 않습니다.",
+          "원본 서버가 직접 반환한 WGS84 좌표를 유지합니다. 임의 수정·단순화·클리핑·좌표변환은 별도 검토합니다.",
+          "원파일과 경계는 공개 Git·배포 패키지·백업 공유에 포함하지 않습니다. 라이선스 미확인 원천 자료를 새 출처로 세탁하지 않습니다.",
+          "지도에는 기관명·원문 링크·조회일과 법적효력없는 참고 경계라는 설명을 표시합니다.",
+          "제30조의 적용범위를 벗어나 공개·공유·상업으로 전환하기 전 해당 데이터의 별도 이용조건과 제공기관 허락을 확인합니다."
+        ],
+        "prohibited_operations": [
+          "bulk_collect",
+          "redistribute"
+        ],
+        "operation_permissions": {
+          "view_original": "allowed",
+          "raw_download": "allowed",
+          "reference_metadata": "allowed",
+          "normalize": "requires_review",
+          "geometry_transform": "requires_review",
+          "map_display": "allowed",
+          "bulk_collect": "requires_review",
+          "redistribute": "requires_review"
+        },
+        "evidence": [
+          {
+            "url": "https://urban.seoul.go.kr/view/map/main.html",
+            "checked_at": "2026-10-03",
+            "observed_statement": "공개 지도서비스는 정비사업구역계를 제공하며 지도정보는 법적 효력 없이 참고자료로만 활용 가능하다고 표시한다. 외부 재사용 허락은 확인되지 않았으므로 일반 공개 서비스 허락으로 해석하지 않는다."
+          },
+          {
+            "url": "https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1029423199",
+            "checked_at": "2026-10-03",
+            "observed_statement": "현행 저작권법 제30조는 공표된 저작물을 영리목적 없이 개인 또는 가정에 준하는 한정 범위로 복제하는 경우를 규정한다. 본 앱은 그 범위를 이 기기 내 비영리 사적 참고로 제한하는 검토를 적용한다."
+          },
+          {
+            "url": "https://www.law.go.kr/lsLawLinkInfo.do?chrClsCd=010202&lsJoLnkSeq=900605247",
+            "checked_at": "2026-10-03",
+            "observed_statement": "현행 제36조제1항은 제30조 등에 따른 이용에 번역·편곡·개작을 규정한다. 앱은 서버가 직접 반환한 좌표만 사용하며 별도 geometry 가공을 허용하지 않는다."
+          },
+          {
+            "url": "https://law.go.kr/LSW/lsSideInfoP.do?docCls=jo&joBrNo=00&joNo=0094&lsiSeq=283335&urlMode=lsScJoRltInfoR",
+            "checked_at": "2026-10-03",
+            "observed_statement": "제94조제1항은 데이터베이스 이용에도 제28~34조 및 제36조 등을 준용한다. 대량수집·재배포의 포괄 허락으로 사용하지 않는다."
+          },
+          {
+            "url": "https://www.mcst.go.kr/site/s_policy/copyright/netizen/netizen04.jsp",
+            "checked_at": "2026-10-03",
+            "observed_statement": "문체부는 사적 복제와 인터넷 게시·전송을 구별하며 공개 전송은 사적 이용 면책범위를 벗어난다고 설명한다."
+          }
+        ]
+      }
     }
   ],
   "user_api_access_updated_at": "2026-09-28",
   "use_policy_schema_version": "1.0",
-  "use_policy_reviewed_at": "2026-10-02"
+  "use_policy_reviewed_at": "2026-10-03"
 }

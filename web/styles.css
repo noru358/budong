@@ -3303,11 +3303,288 @@ tbody tr:last-child th {
   height: 35px;
   background: #fafbfd;
 }
+/* Actual linked area layers: business color identifies type, line identifies source. */
+.map-canvas path.zone-boundary {
+  stroke-width: 2.5;
+  fill-opacity: 0.16;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+  transition: fill-opacity 120ms ease, stroke-width 120ms ease;
+}
+.map-canvas path.zone-boundary--reference,
+.map-canvas path.zone-boundary--user {
+  stroke-dasharray: 6 4;
+}
+.map-canvas path.zone-boundary--user {
+  stroke-dasharray: 2 4;
+}
+.map-canvas path.zone-boundary:hover,
+.map-canvas path.zone-boundary.is-hovered {
+  stroke-width: 3.5;
+  fill-opacity: 0.24;
+}
+.map-canvas path.zone-boundary.is-selected,
+.map-canvas path.zone-boundary:focus-visible {
+  stroke: #0f172a;
+  stroke-width: 4;
+  fill-opacity: 0.25;
+  filter: drop-shadow(0 0 2px #fff);
+  outline: none;
+}
+.zone-label {
+  --zone-color: #087f8c;
+  padding: 0;
+  width: max-content;
+  min-width: 160px;
+  max-width: 220px;
+  border: 1px solid #cdd6e3;
+  border-radius: 7px;
+  background: #fff;
+  color: #26344a;
+  box-shadow: 0 2px 9px #1c2b4624;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.zone-label--redevelopment {
+  --zone-color: #2563eb;
+}
+.zone-label--reconstruction {
+  --zone-color: #7c3aed;
+}
+.zone-label--other {
+  --zone-color: #087f8c;
+}
+.zone-label::before {
+  display: none;
+}
+.zone-label-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  padding: 6px 9px;
+  border-radius: 6px 6px 0 0;
+  background: var(--zone-color);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+.zone-label-stage {
+  display: block;
+  padding: 5px 9px 3px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.zone-label-kind {
+  display: block;
+  padding: 2px 9px 6px;
+  color: #626e80;
+  font-size: 9px;
+  line-height: 1.45;
+}
+.zone-label--selected {
+  border: 2px solid #0f172a;
+  box-shadow: 0 0 0 2px #fff, 0 3px 12px #17233738;
+  z-index: 2;
+}
+.zone-label--selected .zone-label-name {
+  border-radius: 4px 4px 0 0;
+}
+.zone-label:focus-visible {
+  outline: 3px solid #0f172a;
+  outline-offset: 2px;
+}
+.zone-cluster {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  min-width: 72px;
+  min-height: 58px;
+  padding: 0;
+  border: 1px solid #b9c5d5;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 3px 10px #17233726;
+  text-align: center;
+  cursor: pointer;
+}
+.zone-cluster:hover,
+.zone-cluster:focus-visible {
+  border-color: #0f172a;
+  box-shadow: 0 0 0 2px white, 0 3px 12px #17233738;
+  outline: none;
+}
+.zone-cluster.is-selected {
+  border: 2px solid #0f172a;
+  box-shadow: 0 0 0 2px #fff, 0 3px 12px #17233738;
+}
+.zone-cluster.is-selected .zone-cluster-count {
+  background: #0f172a;
+}
+.zone-cluster-name {
+  display: block;
+  padding: 5px 9px 4px;
+  color: #26344a;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.zone-cluster-count {
+  display: block;
+  padding: 4px 9px 5px;
+  border-radius: 0 0 8px 8px;
+  background: #26344a;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+.zone-legend {
+  position: relative;
+  inset: auto;
+  order: 1;
+  flex: 0 0 auto;
+  z-index: 430;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  max-width: none;
+  min-width: 0;
+  padding: 7px 14px;
+  border: 0;
+  border-bottom: 1px solid #e3e7ee;
+  border-radius: 0;
+  background: #fafbfd;
+  color: #43516a;
+  box-shadow: none;
+  font-size: 10px;
+  line-height: 1.5;
+  pointer-events: auto;
+}
+.map-workspace > .map-toolbar {
+  order: 0;
+}
+.map-workspace > .map-canvas {
+  order: 2;
+}
+.map-workspace > .map-status-line {
+  order: 3;
+}
+.map-workspace > .map-source-attribution {
+  position: relative;
+  inset: auto;
+  order: 4;
+  flex: 0 0 auto;
+  max-width: none;
+  padding: 5px 12px 7px;
+  border-top: 1px solid #edf0f4;
+  background: #fff;
+  color: #68768b;
+  font-size: 9px;
+  line-height: 1.5;
+  pointer-events: auto;
+}
+.map-source-attribution:empty {
+  display: none;
+}
+.map-view-readout {
+  top: 118px;
+}
+.zone-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  --zone-color: #43516a;
+}
+.zone-legend-item--redevelopment {
+  --zone-color: #2563eb;
+}
+.zone-legend-item--reconstruction {
+  --zone-color: #7c3aed;
+}
+.zone-legend-item--other {
+  --zone-color: #087f8c;
+}
+.zone-legend-swatch {
+  display: inline-block;
+  width: 17px;
+  height: 11px;
+  border: 2px solid var(--zone-color);
+  background: color-mix(in srgb, var(--zone-color) 16%, white);
+}
+.zone-legend-swatch--redevelopment {
+  --zone-color: #2563eb;
+}
+.zone-legend-swatch--reconstruction {
+  --zone-color: #7c3aed;
+}
+.zone-legend-swatch--other {
+  --zone-color: #087f8c;
+}
+.zone-legend-item--reference .zone-legend-swatch {
+  border-style: dashed;
+}
+.zone-legend-item--user .zone-legend-swatch {
+  border-style: dotted;
+}
+.zone-legend-note,
+.zone-legend > .meta {
+  flex-basis: 100%;
+  margin: 0;
+  color: #68768b;
+  font-size: 9px;
+  line-height: 1.5;
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-canvas path.zone-boundary {
+    transition: none;
+  }
+}
 @media (max-width: 799px) {
   .map-sidebar-filters {
     padding: 0 12px 12px;
   }
   .map-network-status {
     max-width: 62px;
+  }
+  .zone-label {
+    min-width: 140px;
+    max-width: 180px;
+  }
+  .zone-label-name {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+  .zone-label-stage {
+    padding: 4px 8px 2px;
+    font-size: 10px;
+  }
+  .zone-label-kind {
+    padding: 2px 8px 5px;
+  }
+  .zone-legend {
+    inset: auto;
+    padding: 6px 9px;
+    font-size: 9px;
+    gap: 4px 9px;
+    max-width: none;
+  }
+  .map-view-readout {
+    top: 118px;
+  }
+  .map-view-readout > span:last-child {
+    display: none;
+  }
+  .map-workspace > .map-source-attribution {
+    padding: 5px 9px 7px;
+    font-size: 9px;
   }
 }

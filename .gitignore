@@ -4,3 +4,6 @@
 node_modules/
 .DS_Store
 runtime/
+
+# Private GIS boundary copies: never upload or deploy without reuse permission.
+data/boundaries_v1.geojson

@@ -41,7 +41,7 @@ export function mapWorkspaceHtml({
 } = {}) {
   const selected = projects.find((p) => p.id === selectedId);
   return (
-    '<section class="map-workspace" aria-label="지도 탐색"><div class="map-toolbar"><span class="map-caption">서울</span><span id="map-network-status" class="map-network-status" role="status">배경지도 연결 중</span><div class="map-tools"><button class="secondary" type="button" id="map-seoul">서울 전체</button><button class="secondary" type="button" id="map-fit">표시한 위치</button><button class="secondary" type="button" id="map-retry" hidden>다시 연결</button><button class="secondary" type="button" id="map-options" aria-expanded="false" aria-controls="map-import-panel">지도 자료</button></div></div><div id="map-canvas" class="map-canvas" tabindex="0" role="region" aria-label="지도. 드래그로 이동, 휠이나 더하기·빼기로 확대·축소, 방향키로 이동할 수 있습니다."></div><div class="map-view-readout"><span id="map-zoom-level"></span><span>드래그로 이동 · 휠로 확대</span></div><div class="map-status-line"><span id="map-data-status" role="status">' +
+    '<section class="map-workspace" aria-label="지도 탐색"><div class="map-toolbar"><span class="map-caption">서울</span><span id="map-network-status" class="map-network-status" role="status">배경지도 연결 중</span><div class="map-tools"><button class="secondary" type="button" id="map-seoul">서울 전체</button><button class="secondary" type="button" id="map-fit">표시한 위치</button><button class="secondary" type="button" id="map-retry" hidden>다시 연결</button><button class="secondary" type="button" id="map-options" aria-expanded="false" aria-controls="map-import-panel">지도 자료</button></div></div><div class="zone-legend" aria-label="구역 색상 범례"><span class="zone-legend-item"><i class="zone-legend-swatch zone-legend-swatch--redevelopment"></i>재개발</span><span class="zone-legend-item"><i class="zone-legend-swatch zone-legend-swatch--reconstruction"></i>재건축</span><span class="zone-legend-item"><i class="zone-legend-swatch zone-legend-swatch--other"></i>기타 사업</span><span class="meta">점선: 행정 참고경계 · 단계는 정보몽땅 관찰값</span></div><div id="map-canvas" class="map-canvas" tabindex="0" role="region" aria-label="지도. 드래그로 이동, 휠이나 더하기·빼기로 확대·축소, 방향키로 이동할 수 있습니다."></div><div class="map-view-readout"><span id="map-zoom-level"></span><span>드래그로 이동 · 휠로 확대</span></div><div class="map-status-line"><span id="map-data-status" role="status">' +
     (boundaryCount
       ? '경계 ' + boundaryCount + '개'
       : '배경지도 · 구역 경계 미연결') +
@@ -116,6 +116,59 @@ export function mountMapWorkspace({
     placing = false,
     tileLayer = null;
   const projectLayers = new Map();
+  const boundaryLayers = [];
+  const clusters = L.layerGroup().addTo(map);
+  let activeId = selectedId, visibleIds = null;
+  const colorFor = (project) => {
+    const type = project?.project_type_name_official || project?.project_type_official_raw || '';
+    return type.includes('재건축') ? '#7c3aed' : type.includes('재개발') ? '#2563eb' : '#087f8c';
+  };
+  const syncPresentation = () => {
+    clusters.clearLayers();
+    const byBorough = new Map();
+    for (const item of boundaryLayers) {
+      const visible = !visibleIds || visibleIds.has(item.project.id);
+      const selected = activeId === item.project.id;
+      item.layer.setStyle({ color: selected ? '#0f172a' : colorFor(item.project),
+        weight: selected ? 4 : 2, fillColor: colorFor(item.project), fillOpacity: selected ? 0.25 : 0.13 });
+      item.layer.eachLayer((path) => {
+        const el = path.getElement();
+        el?.classList.toggle('is-selected', selected);
+        if (el) { el.dataset.projectId = item.project.id; el.setAttribute('tabindex', '0');
+          el.setAttribute('role', 'button'); el.setAttribute('aria-label', item.project.canonical_name + ' 구역 선택');
+          el.setAttribute('aria-pressed', String(selected));
+          el.onkeydown = (event) => { if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault(); onSelect(item.project.id); } }; }
+      });
+      item.layer.unbindTooltip();
+      if (visible && (map.getZoom() >= 14 || (map.getZoom() === 13 && selected))) {
+        const label = document.createElement('div');
+        label.innerHTML = '<span class="zone-label-name">' + esc(item.labelName || item.project.canonical_name) + '</span>' +
+          '<span class="zone-label-stage">' + esc(item.project.current_stage_official_raw || '단계 미연결') + '</span>' +
+          '<span class="zone-label-kind">' + esc(item.kindLabel) + '</span>';
+        item.layer.bindTooltip(label, { permanent: true, interactive: true, direction: 'center', opacity: 1,
+          className: 'zone-label zone-label--' + (colorFor(item.project) === '#2563eb' ? 'redevelopment' : colorFor(item.project) === '#7c3aed' ? 'reconstruction' : 'other') + (selected ? ' zone-label--selected' : '') });
+        item.layer.openTooltip();
+      }
+      if (visible) {
+        const key = item.project.jurisdiction;
+        if (!byBorough.has(key)) byBorough.set(key, []);
+        byBorough.get(key).push(item);
+      }
+    }
+    if (map.getZoom() <= 12) for (const [borough, items] of byBorough) {
+      const area = L.featureGroup(items.map((i) => i.layer));
+      const count = new Set(items.map((i) => i.project.id)).size;
+      const marker = L.marker(area.getBounds().getCenter(), { icon: L.divIcon({
+        className: 'zone-cluster' + (items.some((i) => i.project.id === activeId) ? ' is-selected' : ''), iconSize: [88, 58],
+        html: '<span class="zone-cluster-name">' + esc(borough.replace('서울특별시 ', '')) +
+          '</span><strong class="zone-cluster-count">' + count + '</strong>' }),
+        title: borough + ' 경계 연결 ' + count + '구역 · 눌러 확대' });
+      marker.on('click', () => map.fitBounds(area.getBounds(), { padding: [55, 55], maxZoom: 15 }));
+      marker.addTo(clusters);
+    }
+  };
+  map.on('zoomend', syncPresentation);
   const inform = (message) => {
     if (!disposed) status.textContent = message;
   };
@@ -133,6 +186,7 @@ export function mountMapWorkspace({
   const renderLayers = () => {
     group.clearLayers();
     projectLayers.clear();
+    boundaryLayers.length = 0;
     const records = [];
     let hidden = 0;
     const attributions = new Set();
@@ -177,40 +231,28 @@ export function mountMapWorkspace({
         attributions.add(feature.properties.attribution);
       const own = review.kind === 'USER_DRAWN',
         official = review.kind === 'OFFICIAL';
+      const project = projects.find((p) => p.id === feature.properties.project_id);
+      const kindLabel = own ? '직접 작성한 참고경계' : official ? '원문 대조 경계' : feature.properties.source_id === 'SEOUL_URBAN_PLAN_GEOJSON' ? '서울시 행정 참고경계' : '행정 참고경계';
       const layer = L.geoJSON(feature, {
-        style: {
-          color: official ? '#175fc7' : own ? '#7061ac' : '#bd6e17',
-          weight: 2,
-          fillOpacity: 0.12,
-          dashArray: official ? undefined : '6 4',
-        },
+        style: { color: colorFor(project), fillColor: colorFor(project), weight: 2,
+          fillOpacity: 0.13, dashArray: official ? undefined : '6 4',
+          className: 'zone-boundary zone-boundary--' + (official ? 'official' : own ? 'user' : 'reference') },
       }).addTo(group);
-      const label = document.createElement('span');
-      label.textContent =
-        (projects.find((p) => p.id === feature.properties.project_id)
-          ?.canonical_name || '구역') +
-        ' · ' +
-        (official
-          ? '검토 기록이 있는 경계'
-          : own
-            ? '직접 작성한 참고경계'
-            : '행정 참고경계');
-      if (!projectLayers.has(feature.properties.project_id))
-        projectLayers.set(feature.properties.project_id, L.featureGroup());
-      projectLayers.get(feature.properties.project_id).addLayer(layer);
-      records.push({
-        project_id: feature.properties.project_id,
-        kind: review.kind,
-        label: own
-          ? '직접 작성한 참고경계'
-          : official
-            ? '검토 기록이 있는 경계'
-            : '행정 참고경계',
+      if (!projectLayers.has(project.id)) projectLayers.set(project.id, L.featureGroup());
+      projectLayers.get(project.id).addLayer(layer);
+      records.push({ project_id: project.id, kind: review.kind, label: kindLabel, source_id: feature.properties.source_id,
+        fetched_at: feature.properties.fetched_at, source_url: feature.properties.source_url,
+        source_as_of: feature.properties.source_as_of, legal_boundary_verified: feature.properties.legal_boundary_verified === true });
+      boundaryLayers.push({ layer, project, kindLabel, labelName: feature.properties.source_name });
+      layer.on('click', () => onSelect(project.id)).on('mouseover', () => {
+        layer.setStyle({ weight: 4, fillOpacity: 0.23 });
+        layer.eachLayer((p) => p.getElement()?.classList.add('is-hovered'));
+      }).on('mouseout', () => {
+        layer.eachLayer((p) => p.getElement()?.classList.remove('is-hovered'));
+        syncPresentation();
       });
-      layer
-        .bindTooltip(label)
-        .on('click', () => onSelect(feature.properties.project_id));
     }
+    syncPresentation();
     inform(
       '위치 ' +
         state.pins.length +
@@ -250,6 +292,7 @@ export function mountMapWorkspace({
         projects,
         sources: registry.sources,
         mode: config.mode || 'PERSONAL',
+        runtimeContext: config.runtime_context || 'PUBLIC',
       };
       state = readState();
       if (config.tile_url) {
@@ -265,6 +308,7 @@ export function mountMapWorkspace({
         let loaded = 0,
           failed = 0;
         tileLayer.on('loading', () => {
+          node.dataset.tilesLoading = 'true';
           loaded = 0;
           failed = 0;
           network.textContent = '배경지도 연결 중';
@@ -283,6 +327,7 @@ export function mountMapWorkspace({
           retry.hidden = false;
         });
         tileLayer.on('load', () => {
+          node.dataset.tilesLoading = 'false';
           retry.hidden = failed === 0;
         });
         tileLayer.addTo(map);
@@ -443,6 +488,8 @@ export function mountMapWorkspace({
   cleanup.focusProject = async (id) => {
     await ready;
     if (disposed) return false;
+    activeId = id;
+    syncPresentation();
     const layer = projectLayers.get(id);
     if (!layer?.getLayers().length) {
       inform(
@@ -453,6 +500,14 @@ export function mountMapWorkspace({
     map.fitBounds(layer.getBounds(), { padding: [40, 40], maxZoom: 16 });
     inform('선택한 구역의 참고 위치·경계로 이동했습니다.');
     return true;
+  };
+  cleanup.setVisibleProjects = (ids) => {
+    visibleIds = new Set(ids);
+    group.clearLayers();
+    for (const [id, layers] of projectLayers) if (visibleIds.has(id)) {
+      layers.eachLayer((layer) => group.addLayer(layer));
+    }
+    syncPresentation();
   };
   cleanup.openPanel = (id) => {
     const panel = document.getElementById('map-import-panel');

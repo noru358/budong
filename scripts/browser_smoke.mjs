@@ -36,6 +36,11 @@ try {
       ),
     }),
   );
+  const boundaryResponse = await fetch(base + '/data/boundaries_v1.geojson');
+  const bundledBoundaries = boundaryResponse.ok ? await boundaryResponse.json() : { features: [] };
+  const boundaryIds = new Set(bundledBoundaries.features.map((f) => f.properties.project_id));
+  const seed = await (await fetch(base + '/data/seoul_seed_v1.json')).json();
+  const unmappedId = seed.projects.find((p) => !boundaryIds.has(p.id))?.id;
   const page = await context.newPage(),
     errors = [];
   page.on('pageerror', (e) => errors.push(e.stack || String(e)));
@@ -273,6 +278,7 @@ try {
       .evaluate((el) => el.classList.contains('placing-pin')),
     false,
   );
+  if (unmappedId) await page.locator('#map-pin-form [name=project_id]').selectOption(unmappedId);
   await page.locator('#map-pin-form [name=latitude]').fill('37.5');
   await page.locator('#map-pin-form [name=longitude]').fill('126.95');
   await page.locator('#map-pin-form button[type=submit]').click();
@@ -304,7 +310,7 @@ try {
     .locator('[data-action=map-scope][data-scope=located]')
     .first()
     .click();
-  assert.equal(await page.locator('.map-project-row').count(), 1);
+  assert.equal(await page.locator('.map-project-row').count(), new Set([...boundaryIds, pinState.pins[0].project_id]).size);
   const preservedCenter = await page
     .locator('#map-canvas')
     .getAttribute('data-center');
@@ -319,10 +325,10 @@ try {
       .querySelector('#map-network-status')
       ?.textContent.includes('연결됨'),
   );
-  assert.equal(
-    await page.locator('#map-canvas').getAttribute('data-center'),
-    preservedCenter,
-  );
+  const restoredCenter = (await page.locator('#map-canvas').getAttribute('data-center')).split(',').map(Number);
+  const priorCenter = preservedCenter.split(',').map(Number);
+  // Leaflet projects a remounted center to pixels; allow sub-pixel geographic rounding.
+  assert.ok(restoredCenter.every((value, i) => Math.abs(value - priorCenter[i]) < 0.00005));
   assert.equal(
     await page.locator('#map-canvas').getAttribute('data-zoom'),
     preservedZoom,

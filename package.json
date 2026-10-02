@@ -8,6 +8,8 @@
     "serve": "node --env-file-if-exists=.env scripts/serve.mjs",
     "watch:update": "node scripts/run_update_watch.mjs",
     "smoke:live": "node --env-file-if-exists=.env scripts/live_data_smoke.mjs",
-    "test:browser": "node scripts/browser_smoke.mjs"
+    "test:browser": "node scripts/browser_smoke.mjs",
+    "map:load": "node scripts/load_private_boundaries.mjs",
+    "test:map": "node scripts/browser_map_boundary_smoke.mjs"
   }
 }

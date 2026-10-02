@@ -18,7 +18,7 @@ const date = (value) => {
 // not the truth of the document or a legal boundary on the ground.
 export function inspectBoundary(
   feature,
-  { projects = [], sources = [], mode = 'PERSONAL' } = {},
+  { projects = [], sources = [], mode = 'PERSONAL', runtimeContext = 'PUBLIC' } = {},
 ) {
   const p = feature?.properties || {},
     issues = [];
@@ -51,7 +51,7 @@ export function inspectBoundary(
   }
   const operation = evaluateSourceOperation(
     source || { source_id: p.source_id },
-    { mode, operation: 'map_display' },
+    { mode, runtimeContext, operation: 'map_display' },
   );
   if (
     operation.requires_attribution &&
@@ -64,7 +64,7 @@ export function inspectBoundary(
   if (p.geometry_transformed === true) {
     const transform = evaluateSourceOperation(
       source || { source_id: p.source_id },
-      { mode, operation: 'geometry_transform' },
+      { mode, runtimeContext, operation: 'geometry_transform' },
     );
     if (!transform.enabled)
       issues.push('좌표 변환·가공 허락을 검증한 출처 등록이 필요합니다.');

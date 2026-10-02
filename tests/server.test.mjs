@@ -187,3 +187,43 @@ test('project reference metadata failures remain upstream errors rather than bad
     },
   );
 });
+
+test('private geometry requires direct loopback Host and PERSONAL mode, including path aliases', async () => {
+  const fs = await import('node:fs/promises');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'budong-private-map-')));
+  await fs.mkdir(path.join(root, 'data'));
+  await fs.mkdir(path.join(root, 'web'));
+  await fs.writeFile(path.join(root, 'data/boundaries_v1.geojson'), '{"type":"FeatureCollection","features":[]}');
+  await fs.symlink('../data/boundaries_v1.geojson', path.join(root, 'web/alias.geojson'));
+  const { get } = await import('node:http');
+  const remoteHostRequest = (url) => new Promise((resolve, reject) => {
+    get(url, { headers: { Host: 'public.example.com' } }, (res) => {
+      let body = ''; res.on('data', (part) => { body += part; });
+      res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(body) }));
+    }).on('error', reject);
+  });
+  try {
+    await withServer({ root, env: {} }, async (base) => {
+      const config = await (await fetch(base + '/api/map-config')).json();
+      assert.equal(config.runtime_context, 'LOCAL_PRIVATE');
+      assert.equal((await fetch(base + '/data/boundaries_v1.geojson')).status, 200);
+      for (const url of ['/data/boundaries_v1.geojson', '/data//boundaries_v1.geojson', '/web/alias.geojson']) {
+        assert.equal((await remoteHostRequest(base + url)).status, 403);
+      }
+      const external = (await remoteHostRequest(base + '/api/map-config')).body;
+      assert.equal(external.runtime_context, 'PUBLIC');
+    });
+    await withServer({ root, env: { BUDONG_USE_MODE: 'COMMERCIAL' } }, async (base) => {
+      assert.equal((await fetch(base + '/data/boundaries_v1.geojson')).status, 403);
+    });
+    const server = createAppServer({ root, env: {} });
+    await new Promise((r) => server.listen(0, '0.0.0.0', r));
+    try {
+      const base = `http://127.0.0.1:${server.address().port}`;
+      assert.equal((await (await fetch(base + '/api/map-config')).json()).runtime_context, 'PUBLIC');
+      assert.equal((await fetch(base + '/data/boundaries_v1.geojson')).status, 403);
+    } finally { await new Promise((r) => server.close(r)); }
+  } finally { await fs.rm(root, { recursive: true, force: true }); }
+});

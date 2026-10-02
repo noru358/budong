@@ -38,13 +38,15 @@ export function getSourceUsePolicy(source = {}) {
     attribution_text: reviewed ? policy.attribution_text ?? source?.institution ?? source?.name ?? null : null,
     reviewed_at: reviewed ? policy.reviewed_at : null,
     conditions_url: safeSourceUrl(policy.conditions_url), verified: reviewed,
+    legal_basis: reviewed ? policy.legal_basis ?? null : null,
+    required_runtime_context: reviewed ? policy.required_runtime_context ?? null : null,
     scope_note: policy.scope_note ?? '공개 페이지 접근과 데이터 재사용 허락을 구분합니다.',
     conditions: Array.isArray(policy.conditions) ? policy.conditions.filter(value => typeof value === 'string') : [],
     prohibited_operations: Array.isArray(policy.prohibited_operations) ? policy.prohibited_operations.filter(value => typeof value === 'string') : [],
     operation_permissions: Object.fromEntries(SOURCE_OPERATIONS.map(operation => [operation,
       reviewed ? cleanState(policy.operation_permissions?.[operation]) : 'requires_review'])),
     evidence: evidence.map(item => ({...item, url:safeSourceUrl(item.url)})),
-    labels: {personal:LABELS.personal[personal],commercial:LABELS.commercial[commercial],modification:LABELS.modification[modification]}
+    labels: {personal:reviewed && policy.required_runtime_context === 'LOCAL_PRIVATE' ? '이 기기 내 비영리 사적 이용만 가능' : LABELS.personal[personal],commercial:LABELS.commercial[commercial],modification:LABELS.modification[modification]}
   };
 }
 
@@ -53,7 +55,7 @@ export function listSourceUsePolicies(registry = {}) {
   return (Array.isArray(sources) ? sources : []).map(getSourceUsePolicy);
 }
 
-export function evaluateSourceOperation(source, {mode = 'PERSONAL', operation = 'reference_metadata'} = {}) {
+export function evaluateSourceOperation(source, {mode = 'PERSONAL', operation = 'reference_metadata', runtimeContext = null} = {}) {
   const policy = getSourceUsePolicy(source);
   const normalizedMode = String(mode).toUpperCase();
   const result = status => ({source_id:policy.source_id, mode:normalizedMode, operation,
@@ -63,9 +65,16 @@ export function evaluateSourceOperation(source, {mode = 'PERSONAL', operation = 
       : status === 'no_derivatives' ? '개인 이용이어도 변경·파생 제작 금지 조건은 유지됩니다.'
       : '이 작업에 필요한 출처별 이용조건을 확인해야 합니다.'});
   if (!['PERSONAL','COMMERCIAL'].includes(normalizedMode) || !SOURCE_OPERATIONS.includes(operation)) return result('requires_review');
-  if (policy.prohibited_operations.includes(operation)) return {...result('requires_review'), prohibited:true, reason:'제공기관 정책이 이 작업을 금지합니다. 해당 작업을 허용하는 다른 출처가 필요합니다.'};
+  if (policy.prohibited_operations.includes(operation)) return {...result('requires_review'), prohibited:true, reason:'이 출처의 검토된 이용 계약에서 금지한 작업입니다. 해당 작업을 허용하는 다른 출처가 필요합니다.'};
   // Opening a public original URL is not republication or a licence assertion.
   if (operation === 'view_original' && policy.catalog_url) return result('allowed');
+  // PERSONAL alone can mean a publicly hosted nonprofit app. Private-copy review
+  // applies only when the caller derives LOCAL_PRIVATE from enforced local use;
+  // never forward this value from uploaded feature properties or request JSON.
+  if (policy.required_runtime_context && (normalizedMode !== 'PERSONAL' || runtimeContext !== policy.required_runtime_context)) {
+    return {...result(normalizedMode === 'COMMERCIAL' ? policy.commercial_use : 'requires_review'), enabled:false,
+      reason:'이 자료는 영리 목적이 아닌 이 기기 내 사적 참고 범위로만 검토했습니다. 공개 서비스·공유·상업 이용은 별도 허락을 확인해야 합니다.'};
+  }
   if (normalizedMode === 'COMMERCIAL' && policy.commercial_use !== 'allowed') return result(policy.commercial_use);
   if (normalizedMode === 'PERSONAL' && policy.personal_use !== 'allowed') return result(policy.personal_use);
   if (MODIFYING.has(operation) && policy.modification !== 'allowed') return result(policy.modification);

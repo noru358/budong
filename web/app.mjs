@@ -379,6 +379,7 @@ function mapSelection(p) {
       ? esc([...new Set(records.map((r) => r.label))].join(' · '))
       : '위치 미연결 · 이 구역은 아직 지도에 표시되지 않습니다.') +
     '</p>' +
+    (records.some((r) => r.source_id === 'SEOUL_URBAN_PLAN_GEOJSON') ? '<p class="meta">서울시 GIS의 행정 참고경계입니다. 최신 정비고시 경계·권리 판단은 원문 대조가 필요합니다.</p>' : '') +
     '<div class="map-selection-actions"><button class="primary" data-action="project" data-id="' +
     esc(p.id) +
     '">구역 상세</button><button class="secondary" data-action="map-mark" data-id="' +
@@ -438,6 +439,7 @@ function renderMapList() {
         ? '전체 구역에서 선택한 뒤 참고 위치를 지정하거나 검토한 경계를 가져오세요.'
         : '검색어를 줄이거나 탐색 화면에서 조건을 바꿔보세요.') +
       '</p><button class="secondary" data-action="map-scope" data-scope="all">전체 구역 보기</button></div>';
+  mapCleanup?.setVisibleProjects?.(visible.map((p) => p.id));
   document.querySelector('#map-selected-project').innerHTML = mapSelection(
     projectBy(current),
   );
@@ -1941,11 +1943,20 @@ try {
       throw new Error('자료를 불러오지 못했습니다 (' + response.status + ').');
     return response.json();
   };
-  const [seed, detailData, registryData] = await Promise.all([
+  const [seed, detailData, registryData, boundaryData] = await Promise.all([
     load('../data/seoul_seed_v1.json'),
     load('../data/deep_validation_v1.json'),
     load('../data/source_registry.json'),
+    fetch('../data/boundaries_v1.geojson').then(async (response) => {
+      if ([403, 404].includes(response.status)) return null;
+      if (!response.ok) throw new Error('경계 파일 응답 확인 필요');
+      const data = await response.json();
+      if (data.type !== 'FeatureCollection' || !Array.isArray(data.features))
+        throw new Error('경계 파일 형식 확인 필요');
+      return data;
+    }).catch((error) => { boundaryError = error.message; return null; }),
   ]);
+  boundaries = boundaryData;
   sourceRegistry = registryData;
   projects = prepareSearchProjects(seed.projects);
   deep = new Map(detailData.targets.map((t) => [t.project_id, t]));
@@ -1959,20 +1970,7 @@ try {
       if (['detail', 'sources'].includes(view)) render();
     })
     .catch(() => {});
-  fetch('../data/boundaries_v1.geojson')
-    .then(async (response) => {
-      if (response.status === 404) return;
-      if (!response.ok) throw new Error('경계 파일 응답 확인 필요');
-      const data = await response.json();
-      if (data.type !== 'FeatureCollection' || !Array.isArray(data.features))
-        throw new Error('경계 파일 형식 확인 필요');
-      boundaries = data;
-      if (['home', 'search', 'map'].includes(view)) render();
-    })
-    .catch((error) => {
-      boundaryError = error.message;
-      if (['home', 'search', 'map'].includes(view)) render();
-    });
+
 } catch (error) {
   app.innerHTML =
     '<h1>구역 자료를 불러오지 못했습니다</h1><div class="note error">' +
